@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,8 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { 
   Users, 
-  DollarSign, 
-  TrendingUp, 
   UserX, 
   Search, 
   Filter, 
@@ -33,6 +30,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
+import { NavbarAdm } from "@/components/navbar_adm"
 
 type Usuario = {
   id: number
@@ -232,7 +230,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
-      <Navbar />
+      <NavbarAdm />
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -242,7 +240,6 @@ export default function AdminPage() {
           <p className="text-gray-600 mt-2">Gerencie usuários, assinaturas e monitore métricas da plataforma.</p>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full rounded-t-lg"></div>

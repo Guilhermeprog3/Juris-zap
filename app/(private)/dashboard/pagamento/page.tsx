@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -14,12 +13,21 @@ import {
   DollarSign,
   QrCode,
   CheckCircle,
+  RefreshCw,
 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
+import { NavbarAdm } from "@/components/navbar_adm"
+
+const PLANS = [
+  { id: "basic", name: "Básico", price: 29.90 },
+  { id: "professional", name: "Profissional", price: 59.90 },
+  { id: "enterprise", name: "Empresarial", price: 99.90 }
+]
 
 export default function PagamentoPage() {
   const [paymentMethod, setPaymentMethod] = useState("pix")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState("professional")
   
   const [cardNumber, setCardNumber] = useState("")
   const [cardName, setCardName] = useState("")
@@ -36,7 +44,7 @@ export default function PagamentoPage() {
     setIsProcessing(true)
     setTimeout(() => {
       setIsProcessing(false)
-      alert(`Pagamento via ${paymentMethod === 'pix' ? 'PIX' : 'Cartão'} processado com sucesso!`)
+      alert(`Pagamento do plano ${PLANS.find(p => p.id === selectedPlan)?.name} via ${paymentMethod === 'pix' ? 'PIX' : 'Cartão'} processado com sucesso!`)
     }, 2000)
   }
 
@@ -47,9 +55,11 @@ export default function PagamentoPage() {
     return value
   }
 
+  const selectedPlanData = PLANS.find(p => p.id === selectedPlan)
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
-      <Navbar />
+      <NavbarAdm />
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -75,13 +85,25 @@ export default function PagamentoPage() {
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
               <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <DollarSign className="h-5 w-5 mr-2 text-emerald-600" />
-                  Método de Pagamento
-                </CardTitle>
-                <CardDescription>
-                  Escolha como deseja pagar sua assinatura
-                </CardDescription>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <DollarSign className="h-5 w-5 mr-2 text-emerald-600" />
+                      Método de Pagamento
+                    </CardTitle>
+                    <CardDescription>
+                      Escolha como deseja pagar sua assinatura
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => document.getElementById('plan-selector')?.scrollIntoView({ behavior: 'smooth' })}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Trocar Plano
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <RadioGroup 
@@ -206,14 +228,38 @@ export default function PagamentoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div id="plan-selector" className="space-y-2">
+                  <Label>Plano Selecionado</Label>
+                  <RadioGroup 
+                    value={selectedPlan}
+                    onValueChange={setSelectedPlan}
+                    className="grid grid-cols-3 gap-2"
+                  >
+                    {PLANS.map(plan => (
+                      <div key={plan.id}>
+                        <RadioGroupItem value={plan.id} id={plan.id} className="peer sr-only" />
+                        <Label
+                          htmlFor={plan.id}
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-emerald-50 hover:border-emerald-300 peer-data-[state=checked]:border-emerald-600 [&:has([data-state=checked])]:border-emerald-600 cursor-pointer"
+                        >
+                          <span className="font-medium">{plan.name}</span>
+                          <span className="text-emerald-600 font-bold">R$ {plan.price.toFixed(2)}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                <Separator className="my-2" />
+
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Plano</span>
-                    <span className="font-medium">Profissional</span>
+                    <span className="font-medium">{selectedPlanData?.name}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Valor</span>
-                    <span className="font-bold text-emerald-600">R$ 59,90</span>
+                    <span className="font-bold text-emerald-600">R$ {selectedPlanData?.price.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Vencimento</span>
@@ -222,7 +268,7 @@ export default function PagamentoPage() {
                   <Separator className="my-2" />
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total</span>
-                    <span className="font-bold text-lg text-emerald-600">R$ 59,90</span>
+                    <span className="font-bold text-lg text-emerald-600">R$ {selectedPlanData?.price.toFixed(2)}</span>
                   </div>
                 </div>
 

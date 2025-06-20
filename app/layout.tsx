@@ -9,7 +9,6 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "JurisZap - IA Jurídica para Estudantes de Direito",
   description: "Sua IA personalizada para estudos jurídicos. Resumos, exercícios e modelos automáticos via WhatsApp.",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({

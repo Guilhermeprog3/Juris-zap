@@ -3,7 +3,6 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +22,7 @@ import {
   Gem,
   Leaf,
 } from "lucide-react"
+import { NavbarAdm } from "@/components/navbar_adm"
 
 interface PlanIconProps {
   icon: LucideIcon
@@ -120,7 +120,7 @@ export default function GerenciarPlanosPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
-      <Navbar />
+      <NavbarAdm />
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-12">

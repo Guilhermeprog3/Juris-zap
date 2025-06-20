@@ -1,12 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
-  Calendar,
   CheckCircle,
   AlertCircle,
   MessageSquare,
@@ -15,10 +13,10 @@ import {
   Phone,
   Edit,
   X,
-  ArrowLeft,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { NavbarAdm } from "@/components/navbar_adm"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -70,7 +68,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
-      <Navbar />
+      <NavbarAdm />
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
