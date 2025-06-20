@@ -10,25 +10,20 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import {
   ArrowLeft,
-  CreditCard,
   Calendar,
   CheckCircle,
   AlertTriangle,
-  Crown,
-  Zap,
-  Star,
-  Shield,
-  Sparkles,
-  ChevronRight,
-  Gem,
-  Leaf,
   Scale,
   Gavel,
   X,
   LucideIcon,
+  Zap,
+  Sparkles,
+  ChevronRight,
+  Gem,
+  Leaf,
 } from "lucide-react"
 
-// Definindo a tipagem para o componente PlanIcon
 interface PlanIconProps {
   icon: LucideIcon
 }
@@ -41,7 +36,6 @@ function PlanIcon({ icon: Icon }: PlanIconProps) {
   )
 }
 
-// Definindo a tipagem para o componente InfoBox
 interface InfoBoxProps {
   icon: LucideIcon
   title: string
@@ -56,7 +50,6 @@ export default function GerenciarPlanosPage() {
     preco: "R$ 29,90",
     status: "Ativo",
     proximoPagamento: "2024-02-15",
-    metodoPagamento: "**** **** **** 1234",
     dataInicio: "2024-01-15",
     diasRestantes: 12,
   })
@@ -130,7 +123,6 @@ export default function GerenciarPlanosPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="mb-12">
           <Link
             href="/dashboard"
@@ -151,9 +143,7 @@ export default function GerenciarPlanosPage() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Sidebar */}
           <aside className="xl:col-span-1 space-y-8">
-            {/* Plano Atual */}
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
               <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
               <CardHeader>
@@ -189,10 +179,6 @@ export default function GerenciarPlanosPage() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600 flex items-center"><CreditCard className="h-4 w-4 mr-2 text-emerald-500" /> Cartão</span>
-                    <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm">{planoAtual.metodoPagamento}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
                     <span className="text-gray-600 flex items-center"><CheckCircle className="h-4 w-4 mr-2 text-emerald-500" /> Membro desde</span>
                     <span className="font-medium">{new Date(planoAtual.dataInicio).toLocaleDateString("pt-BR", {timeZone: 'UTC'})}</span>
                   </div>
@@ -202,26 +188,25 @@ export default function GerenciarPlanosPage() {
 
                 <div className="space-y-3">
                   <Button 
-                    variant="outline" 
-                    className="w-full justify-between group hover:bg-emerald-50 transition-colors"
-                    onClick={() => router.push('/dashboard/cartao')}
+                    variant="default" 
+                    className="w-full justify-between group bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md"
+                    onClick={() => router.push('/dashboard/pagamento')}
                   >
                     <span className="flex items-center">
-                      <CreditCard className="h-4 w-4 mr-2 text-emerald-500" /> 
-                      Alterar Cartão
+                      <Zap className="h-4 w-4 mr-2" /> 
+                      Adiantar Pagamento
                     </span>
-                    <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-emerald-500 transition-colors" />
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="w-full justify-between group hover:bg-red-50 transition-colors text-red-600 border-red-200"
-                    onClick={() => setShowCancelModal(true)}
+                    className="w-full justify-between group hover:bg-emerald-50 transition-colors"
+                    onClick={() => window.scrollTo({top: document.getElementById('planos-disponiveis')?.offsetTop, behavior: 'smooth'})}
                   >
                     <span className="flex items-center">
-                      <AlertTriangle className="h-4 w-4 mr-2" /> 
-                      Cancelar Assinatura
+                      <Sparkles className="h-4 w-4 mr-2 text-emerald-500" /> 
+                      Trocar Assinatura
                     </span>
-                    <ChevronRight className="h-4 w-4 text-red-400 group-hover:text-red-500 transition-colors" />
+                    <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-emerald-500 transition-colors" />
                   </Button>
                 </div>
               </CardContent>
@@ -229,7 +214,7 @@ export default function GerenciarPlanosPage() {
           </aside>
 
           <main className="xl:col-span-3">
-            <div className="mb-10">
+            <div className="mb-10" id="planos-disponiveis">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
                 Escolha o plano ideal para sua <span className="text-emerald-600">carreira jurídica</span>
               </h2>
@@ -306,13 +291,13 @@ export default function GerenciarPlanosPage() {
               <CardHeader>
                 <CardTitle className="flex items-center text-xl">
                   <div className="p-2 bg-emerald-100 rounded-lg mr-3">
-                    <Shield className="h-6 w-6 text-emerald-600" />
+                    <CheckCircle className="h-6 w-6 text-emerald-600" />
                   </div>
                   Informações Importantes
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InfoBox icon={CheckCircle} title="Upgrade Imediato" color="emerald">
+                <InfoBox icon={Zap} title="Upgrade Imediato" color="emerald">
                   Ao fazer upgrade, você terá acesso imediato aos novos recursos. O valor será cobrado proporcionalmente ao tempo restante no seu ciclo atual.
                 </InfoBox>
                 <InfoBox icon={Calendar} title="Downgrade Agendado" color="teal">
@@ -321,7 +306,7 @@ export default function GerenciarPlanosPage() {
                 <InfoBox icon={AlertTriangle} title="Cancelamento Sem Custos" color="amber">
                   Você pode cancelar quando quiser sem taxas. Seu acesso permanecerá ativo até o final do período já pago.
                 </InfoBox>
-                <InfoBox icon={Shield} title="Garantia de Satisfação" color="cyan">
+                <InfoBox icon={Gem} title="Garantia de Satisfação" color="cyan">
                   Teste sem riscos por 7 dias. Se não amar a experiência, devolvemos seu dinheiro sem questionamentos.
                 </InfoBox>
               </CardContent>

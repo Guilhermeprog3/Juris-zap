@@ -5,7 +5,6 @@ import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
 import {
   Calendar,
   CheckCircle,
@@ -83,7 +82,6 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            {/* Card Meu Plano */}
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
               <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
               <CardHeader>
@@ -109,7 +107,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Card Número de Contato */}
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
               <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
               <CardHeader>
@@ -138,7 +135,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Card Histórico de Pagamentos */}
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
               <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
               <CardHeader>
@@ -165,7 +161,6 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-6">
-            {/* Card Prazos Próximos */}
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
               <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
               <CardHeader>
@@ -189,7 +184,6 @@ export default function DashboardPage() {
                   <DollarSign className={`h-4 w-4 ${isPaymentOverdue ? 'text-red-500' : 'text-emerald-500'}`} />
                 </div>
                 
-                {/* Botão de Pagamento */}
                 <Button 
                   className={`w-full ${isPaymentOverdue 
                     ? 'bg-red-600 hover:bg-red-700' 
@@ -201,7 +195,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Card Atendimento WhatsApp */}
             <Card className="bg-gradient-to-br from-emerald-700 to-teal-700 text-white shadow-xl">
               <CardHeader>
                 <CardTitle className="flex items-center text-white">
@@ -246,7 +239,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Modal para Trocar Número */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <Card className="w-full max-w-md mx-4 border-0 shadow-xl">

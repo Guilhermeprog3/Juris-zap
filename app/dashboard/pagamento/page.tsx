@@ -21,22 +21,19 @@ export default function PagamentoPage() {
   const [paymentMethod, setPaymentMethod] = useState("pix")
   const [isProcessing, setIsProcessing] = useState(false)
   
-  // Dados do cartão
   const [cardNumber, setCardNumber] = useState("")
   const [cardName, setCardName] = useState("")
   const [expiryDate, setExpiryDate] = useState("")
   const [cvv, setCvv] = useState("")
 
-  // Dados do PIX (simulado)
   const pixData = {
     qrCode: "00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-12d1-a456-426655440000520400005303986540559.905802BR5913Fulano de Tal6008BRASILIA62070503***6304A1B2",
     code: "00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-12d1-a456-426655440000520400005303986540559.905802BR5913Fulano de Tal6008BRASILIA62070503***6304A1B2",
-    expiration: new Date(Date.now() + 30 * 60 * 1000) // 30 minutos no futuro
+    expiration: new Date(Date.now() + 30 * 60 * 1000)
   }
 
   const handlePaymentSubmit = () => {
     setIsProcessing(true)
-    // Simulação de processamento de pagamento
     setTimeout(() => {
       setIsProcessing(false)
       alert(`Pagamento via ${paymentMethod === 'pix' ? 'PIX' : 'Cartão'} processado com sucesso!`)
@@ -93,7 +90,6 @@ export default function PagamentoPage() {
                   value={paymentMethod}
                   onValueChange={setPaymentMethod}
                 >
-                  {/* Opção PIX */}
                   <div className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-emerald-50 transition-colors">
                     <RadioGroupItem value="pix" id="pix" />
                     <Label htmlFor="pix" className="flex items-center w-full cursor-pointer">
@@ -107,7 +103,6 @@ export default function PagamentoPage() {
                     </Label>
                   </div>
 
-                  {/* Opção Cartão de Crédito */}
                   <div className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-emerald-50 transition-colors">
                     <RadioGroupItem value="credit" id="credit" />
                     <Label htmlFor="credit" className="flex items-center w-full cursor-pointer">
@@ -122,12 +117,10 @@ export default function PagamentoPage() {
                   </div>
                 </RadioGroup>
 
-                {/* Seção de pagamento dinâmica */}
                 {paymentMethod === "pix" ? (
                   <div className="p-6 border rounded-lg bg-emerald-50">
                     <div className="flex flex-col items-center">
                       <div className="bg-white p-4 rounded-lg border border-emerald-200 mb-4">
-                        {/* QR Code simulado - substitua por um gerador real ou imagem */}
                         <div className="w-48 h-48 bg-gray-100 flex items-center justify-center">
                           <QrCode className="h-32 w-32 text-emerald-600" />
                         </div>
@@ -204,7 +197,6 @@ export default function PagamentoPage() {
           </div>
 
           <div>
-            {/* Resumo do Pagamento */}
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
               <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
               <CardHeader>
