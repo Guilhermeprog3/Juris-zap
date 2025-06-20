@@ -1,255 +1,305 @@
 "use client"
-import { useState, useEffect } from "react"
-import { useForm, Controller } from "react-hook-form" 
-import { zodResolver } from "@hookform/resolvers/zod"
+
+import { useState } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, EyeOff, CheckCircle, Bot, Loader2 } from "lucide-react"
-import { cadastroSchema, type CadastroFormData } from "@/lib/validations"
-import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input"
+import {
+  ArrowLeft,
+  CreditCard,
+  DollarSign,
+  QrCode,
+  CheckCircle,
+  RefreshCw,
+} from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { NavbarAdm } from "@/components/navbar_adm"
 
-const planosDisponiveis = {
-  basico: "Básico - Gratuito",
-  essencial_mensal: "Essencial - R$ 9,90/mês",
-  aprova_mensal: "Aprova+ - R$ 19,90/mês",
-  essencial_anual: "Essencial - R$ 99,00/ano",
-  aprova_anual: "Aprova+ - R$ 199,00/ano"
-}
+const PLANS = [
+  { id: "basic", name: "Básico", price: 29.90 },
+  { id: "professional", name: "Profissional", price: 59.90 },
+  { id: "enterprise", name: "Empresarial", price: 99.90 }
+]
 
-export default function CadastroPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const searchParams = useSearchParams()
+export default function PagamentoPage() {
+  const [paymentMethod, setPaymentMethod] = useState("pix")
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState("professional")
+  
+  const [cardNumber, setCardNumber] = useState("")
+  const [cardName, setCardName] = useState("")
+  const [expiryDate, setExpiryDate] = useState("")
+  const [cvv, setCvv] = useState("")
 
-  const planoInicial = searchParams.get("plano") || 'essencial_mensal';
-  const planoValido = Object.keys(planosDisponiveis).includes(planoInicial) ? planoInicial : "essencial_mensal";
+  const pixData = {
+    qrCode: "00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-12d1-a456-426655440000520400005303986540559.905802BR5913Fulano de Tal6008BRASILIA62070503***6304A1B2",
+    code: "00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-12d1-a456-426655440000520400005303986540559.905802BR5913Fulano de Tal6008BRASILIA62070503***6304A1B2",
+    expiration: new Date(Date.now() + 30 * 60 * 1000)
+  }
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    control, 
-    formState: { errors },
-  } = useForm<CadastroFormData>({
-    resolver: zodResolver(cadastroSchema),
-    defaultValues: {
-      plano: planoValido as any,
-      aceitaTermos: false,
-    },
-  });
+  const handlePaymentSubmit = () => {
+    setIsProcessing(true)
+    setTimeout(() => {
+      setIsProcessing(false)
+      alert(`Pagamento do plano ${PLANS.find(p => p.id === selectedPlan)?.name} via ${paymentMethod === 'pix' ? 'PIX' : 'Cartão'} processado com sucesso!`)
+    }, 2000)
+  }
 
-  useEffect(() => {
-    setValue("plano", planoValido as any);
-  }, [planoValido, setValue]);
-
-  const watchedPlano = watch("plano");
-
-  const formatTelefone = (value: string) => {
-    return value
-      .replace(/\D/g, "")
-      .replace(/(\d{2})(\d)/, "($1) $2")
-      .replace(/(\d{5})(\d)/, "$1-$2")
-      .substring(0, 15);
-  };
-
-  const onSubmit = async (data: CadastroFormData) => {
-    setIsLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.senha);
-      const user = userCredential.user;
-
-      await updateProfile(user, { displayName: data.nome });
-
-      await setDoc(doc(db, "users", user.uid), {
-        nome: data.nome,
-        email: data.email,
-        telefone: data.telefone,
-        planoId: data.plano,
-        statusAssinatura: "ativo",
-        dataCadastro: serverTimestamp(),
-        proximoVencimento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        role: "user"
-      });
-
-      toast.success("Conta criada com sucesso!");
-      router.push(data.plano === 'basico' ? '/dashboard' : `/pagamento?plano=${data.plano}`);
-    } catch (error: any) {
-      console.error("Erro no cadastro:", error);
-      if (error.code === 'auth/email-already-in-use') {
-        toast.error("Este e-mail já está em uso.");
-      } else {
-        toast.error("Ocorreu um erro ao criar a conta.");
-      }
-    } finally {
-      setIsLoading(false);
+  const formatExpiryDate = (value: string) => {
+    if (value.length === 2 && !value.includes('/')) {
+      return `${value}/`
     }
-  };
+    return value
+  }
+
+  const selectedPlanData = PLANS.find(p => p.id === selectedPlan)
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-green-50 via-white to-teal-50 flex flex-col">
-      <Navbar />
-      <main className="w-full flex-grow grid grid-cols-1 lg:grid-cols-2">
-        <div className="flex flex-col justify-center items-start text-left p-8 md:p-12 lg:p-24">
-          <div className="w-full max-w-md">
-            <div className="flex items-center space-x-2 mb-4">
-              <Bot className="h-8 w-8 text-green-600" />
-              <span className="text-xl font-bold text-gray-900">JurisZap</span>
-            </div>
-            <h1 className="text-4xl lg:text-5xl font-extrabold text-green-900 mb-6 tracking-tight">
-              Sua jornada jurídica começa aqui.
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
+      <NavbarAdm />
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <Link
+            href="/cadastro"
+            className="inline-flex items-center text-emerald-600 hover:text-emerald-800 transition-colors mb-6 group"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            Voltar ao Cadastro
+          </Link>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Realizar <span className="text-emerald-600">Pagamento</span>
             </h1>
-            <p className="text-lg text-gray-600 mb-8">
-              Ao criar sua conta, você terá acesso a uma poderosa ferramenta de IA para transformar seus estudos e sua prática.
+            <p className="text-gray-600">
+              Selecione o método de pagamento para continuar com sua assinatura.
             </p>
-            <ul className="space-y-4">
-              <li className="flex items-center text-gray-700">
-                <CheckCircle className="h-6 w-6 text-green-600 mr-3 flex-shrink-0" />
-                Resumos de textos, documentos e imagens.
-              </li>
-              <li className="flex items-center text-gray-700">
-                <CheckCircle className="h-6 w-6 text-green-600 mr-3 flex-shrink-0" />
-                Auxílio inteligente na resolução de exercícios.
-              </li>
-              <li className="flex items-center text-gray-700">
-                <CheckCircle className="h-6 w-6 text-green-600 mr-3 flex-shrink-0" />
-                Integração total com o WhatsApp.
-              </li>
-            </ul>
           </div>
         </div>
-        <div className="flex flex-col justify-center items-center p-8 bg-white/50 lg:bg-transparent">
-          <div className="w-full max-w-md">
-            <Card className="bg-white/70 backdrop-blur-xl border-gray-200/50 shadow-lg rounded-2xl">
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Crie sua Conta</CardTitle>
-                <CardDescription>É rápido, fácil e seguro.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome">Nome Completo</Label>
-                    <Input id="nome" {...register("nome")} className={errors.nome ? "border-red-500" : ""} />
-                    {errors.nome && <p className="text-sm text-red-500">{errors.nome.message}</p>}
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-mail</Label>
-                    <Input id="email" type="email" {...register("email")} className={errors.email ? "border-red-500" : ""} />
-                    {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <DollarSign className="h-5 w-5 mr-2 text-emerald-600" />
+                      Método de Pagamento
+                    </CardTitle>
+                    <CardDescription>
+                      Escolha como deseja pagar sua assinatura
+                    </CardDescription>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="telefone">WhatsApp</Label>
-                    <Controller
-                      name="telefone"
-                      control={control}
-                      render={({ field }) => (
-                        <Input
-                          {...field}
-                          id="telefone"
-                          type="tel"
-                          placeholder="(XX) XXXXX-XXXX"
-                          onChange={(e) => {
-                            const formatted = formatTelefone(e.target.value);
-                            field.onChange(formatted);
-                          }}
-                          className={errors.telefone ? "border-red-500" : ""}
-                        />
-                      )}
-                    />
-                    {errors.telefone && <p className="text-sm text-red-500">{errors.telefone.message}</p>}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="senha">Senha</Label>
-                    <div className="relative">
-                      <Input id="senha" type={showPassword ? "text" : "password"} {...register("senha")} className={`pr-10 ${errors.senha ? "border-red-500" : ""}`} />
-                      <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                    {errors.senha && <p className="text-sm text-red-500">{errors.senha.message}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmarSenha">Confirmar Senha</Label>
-                    <div className="relative">
-                       <Input id="confirmarSenha" type={showConfirmPassword ? "text" : "password"} {...register("confirmarSenha")} className={`pr-10 ${errors.confirmarSenha ? "border-red-500" : ""}`} />
-                       <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                    {errors.confirmarSenha && <p className="text-sm text-red-500">{errors.confirmarSenha.message}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="plano">Plano</Label>
-                    <Select value={watchedPlano} onValueChange={(value) => setValue("plano", value as any)}>
-                      <SelectTrigger className={errors.plano ? "border-red-500" : ""}>
-                        <SelectValue placeholder="Selecione um plano" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(planosDisponiveis).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-start space-x-3 pt-2">
-                    <Controller
-                        name="aceitaTermos"
-                        control={control}
-                        render={({ field }) => (
-                            <Checkbox
-                                id="termos"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                            />
-                        )}
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                       <Label htmlFor="termos" className="text-sm font-normal">
-                         Eu li e aceito os{" "}
-                         <Link href="/termos" className="text-green-600 hover:underline">Termos de Uso</Link> e a{" "}
-                         <Link href="/privacidade" className="text-green-600 hover:underline">Política de Privacidade</Link>.
-                       </Label>
-                       {errors.aceitaTermos && <p className="text-sm text-red-500">{errors.aceitaTermos.message}</p>}
-                    </div>
-                  </div>
-
-                  <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 font-semibold text-base" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isLoading ? "Criando conta..." : "Criar e Continuar"}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => document.getElementById('plan-selector')?.scrollIntoView({ behavior: 'smooth' })}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Trocar Plano
                   </Button>
-                </form>
-
-                <div className="mt-6 text-center">
-                  <p className="text-sm text-gray-600">
-                    Já tem uma conta?{" "}
-                    <Link href="/login" className="font-semibold text-green-600 hover:underline">
-                      Fazer login
-                    </Link>
-                  </p>
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <RadioGroup 
+                  defaultValue="pix" 
+                  className="space-y-4"
+                  value={paymentMethod}
+                  onValueChange={setPaymentMethod}
+                >
+                  <div className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-emerald-50 transition-colors">
+                    <RadioGroupItem value="pix" id="pix" />
+                    <Label htmlFor="pix" className="flex items-center w-full cursor-pointer">
+                      <div className="p-3 rounded-lg bg-emerald-100 text-emerald-600 mr-4">
+                        <QrCode className="h-6 w-6" />
+                      </div>
+                      <div className="flex-grow">
+                        <h3 className="font-medium">PIX</h3>
+                        <p className="text-sm text-gray-500">Pagamento instantâneo e sem taxas</p>
+                      </div>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-emerald-50 transition-colors">
+                    <RadioGroupItem value="credit" id="credit" />
+                    <Label htmlFor="credit" className="flex items-center w-full cursor-pointer">
+                      <div className="p-3 rounded-lg bg-emerald-100 text-emerald-600 mr-4">
+                        <CreditCard className="h-6 w-6" />
+                      </div>
+                      <div className="flex-grow">
+                        <h3 className="font-medium">Cartão de Crédito</h3>
+                        <p className="text-sm text-gray-500">Pague com seu cartão</p>
+                      </div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+
+                {paymentMethod === "pix" ? (
+                  <div className="p-6 border rounded-lg bg-emerald-50">
+                    <div className="flex flex-col items-center">
+                      <div className="bg-white p-4 rounded-lg border border-emerald-200 mb-4">
+                        <div className="w-48 h-48 bg-gray-100 flex items-center justify-center">
+                          <QrCode className="h-32 w-32 text-emerald-600" />
+                        </div>
+                      </div>
+                      
+                      <div className="w-full space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Código PIX:</span>
+                          <span className="font-mono text-sm bg-emerald-100 px-2 py-1 rounded">
+                            {pixData.code.substring(0, 20)}...
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-600">Validade:</span>
+                          <span className="text-sm font-medium">
+                            {pixData.expiration.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </span>
+                        </div>
+                        <Button variant="outline" className="w-full mt-4">
+                          Copiar Código PIX
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 border rounded-lg bg-emerald-50 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cardNumber">Número do Cartão</Label>
+                      <Input
+                        id="cardNumber"
+                        placeholder="0000 0000 0000 0000"
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="cardName">Nome no Cartão</Label>
+                      <Input
+                        id="cardName"
+                        placeholder="Nome como está no cartão"
+                        value={cardName}
+                        onChange={(e) => setCardName(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="expiryDate">Validade (MM/AA)</Label>
+                        <Input
+                          id="expiryDate"
+                          placeholder="MM/AA"
+                          value={expiryDate}
+                          onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
+                          maxLength={5}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="cvv">CVV</Label>
+                        <Input
+                          id="cvv"
+                          placeholder="123"
+                          value={cvv}
+                          onChange={(e) => setCvv(e.target.value)}
+                          maxLength={4}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div>
+            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <CheckCircle className="h-5 w-5 mr-2 text-emerald-600" />
+                  Resumo do Pagamento
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div id="plan-selector" className="space-y-2">
+                  <Label>Plano Selecionado</Label>
+                  <RadioGroup 
+                    value={selectedPlan}
+                    onValueChange={setSelectedPlan}
+                    className="grid grid-cols-3 gap-2"
+                  >
+                    {PLANS.map(plan => (
+                      <div key={plan.id}>
+                        <RadioGroupItem value={plan.id} id={plan.id} className="peer sr-only" />
+                        <Label
+                          htmlFor={plan.id}
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-emerald-50 hover:border-emerald-300 peer-data-[state=checked]:border-emerald-600 [&:has([data-state=checked])]:border-emerald-600 cursor-pointer"
+                        >
+                          <span className="font-medium">{plan.name}</span>
+                          <span className="text-emerald-600 font-bold">R$ {plan.price.toFixed(2)}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                <Separator className="my-2" />
+
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Plano</span>
+                    <span className="font-medium">{selectedPlanData?.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Valor</span>
+                    <span className="font-bold text-emerald-600">R$ {selectedPlanData?.price.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Vencimento</span>
+                    <span className="font-medium">20/07/2025</span>
+                  </div>
+                  <Separator className="my-2" />
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total</span>
+                    <span className="font-bold text-lg text-emerald-600">R$ {selectedPlanData?.price.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <Button 
+                  className="w-full mt-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                  onClick={handlePaymentSubmit}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processando...
+                    </span>
+                  ) : (
+                    `Pagar com ${paymentMethod === 'pix' ? 'PIX' : 'Cartão'}`
+                  )}
+                </Button>
+
+                <p className="text-xs text-gray-500 mt-4">
+                  {paymentMethod === "pix" 
+                    ? "O pagamento via PIX é processado instantaneamente."
+                    : "Seu cartão será cobrado imediatamente."}
+                </p>
               </CardContent>
             </Card>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
