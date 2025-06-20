@@ -1,3 +1,4 @@
+// Caminho: lib/validations.ts
 import { z } from "zod"
 
 // Validação para cadastro
@@ -7,29 +8,30 @@ export const cadastroSchema = z
       .string()
       .min(2, "Nome deve ter pelo menos 2 caracteres")
       .max(100, "Nome deve ter no máximo 100 caracteres")
-      .regex(/^[a-zA-ZÀ-ÿ\s]+$/, "Nome deve conter apenas letras"),
+      .regex(/^[a-zA-ZÀ-ÿ\s]+$/, "Nome deve conter apenas letras e espaços"),
     email: z.string().email("Email inválido").min(1, "Email é obrigatório"),
     telefone: z
       .string()
-      .min(1, "Telefone é obrigatório")
-      .regex(/^$$\d{2}$$\s\d{4,5}-\d{4}$/, "Formato: (11) 99999-9999"),
+      .min(14, "Telefone é obrigatório") // Aumentado para o formato completo
+      // AQUI ESTÁ A CORREÇÃO: trocamos $$ por \(\) e adicionamos o ^ no início e $ no fim
+      .regex(/^\(\d{2}\)\s\d{4,5}-\d{4}$/, "Formato inválido. Use (XX) XXXXX-XXXX"),
     senha: z
       .string()
-      .min(8, "Senha deve ter pelo menos 8 caracteres")
+      .min(8, "A senha deve ter pelo menos 8 caracteres")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Senha deve conter ao menos: 1 letra minúscula, 1 maiúscula e 1 número",
+        "A senha precisa de uma letra minúscula, uma maiúscula e um número",
       ),
-    confirmarSenha: z.string().min(1, "Confirmação de senha é obrigatória"),
-    plano: z.enum(["basico", "estudante", "profissional"], {
-      required_error: "Selecione um plano",
+    confirmarSenha: z.string().min(1, "A confirmação de senha é obrigatória"),
+    plano: z.enum(["basico", "essencial_mensal", "essencial_anual", "aprova_mensal", "aprova_anual"], {
+      errorMap: () => ({ message: "Por favor, selecione um plano." })
     }),
     aceitaTermos: z.boolean().refine((val) => val === true, {
-      message: "Você deve aceitar os termos de uso",
+      message: "Você deve aceitar os termos de uso para continuar.",
     }),
   })
   .refine((data) => data.senha === data.confirmarSenha, {
-    message: "Senhas não coincidem",
+    message: "As senhas não coincidem",
     path: ["confirmarSenha"],
   })
 
@@ -45,7 +47,7 @@ export const pagamentoCartaoSchema = z.object({
   nomeCartao: z
     .string()
     .min(2, "Nome no cartão é obrigatório")
-    .regex(/^[a-zA-ZÀ-ÿ\s]+$/, "Nome deve conter apenas letras"),
+    .regex(/^[a-zA-ZÀ-ÿ\s]+$/, "Nome deve conter apenas letras e espaços"),
   numeroCartao: z
     .string()
     .min(1, "Número do cartão é obrigatório")

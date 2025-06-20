@@ -7,12 +7,10 @@ export function Footer() {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
           
-          {/* Copyright */}
           <div className="text-sm text-center sm:text-left">
             <p>&copy; {new Date().getFullYear()} JurisZap. Todos os direitos reservados.</p>
           </div>
 
-          {/* Contatos e Redes Sociais */}
           <div className="flex items-center justify-center flex-wrap gap-x-6 gap-y-3">
             <a href="mailto:contato@juriszap.com" className="flex items-center space-x-2 text-sm hover:text-green-400 transition-colors">
               <Mail className="h-5 w-5" />
