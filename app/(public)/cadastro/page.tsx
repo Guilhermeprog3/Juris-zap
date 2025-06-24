@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
+// Adicionado o Controller
 import { useForm, Controller } from "react-hook-form" 
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
@@ -13,17 +14,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Eye, EyeOff, CheckCircle, Bot, Loader2 } from "lucide-react"
 import { cadastroSchema, type CadastroFormData } from "@/lib/validations"
-import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { toast } from "sonner";
 
 const planosDisponiveis = {
   basico: "Básico - Gratuito",
   essencial_mensal: "Essencial - R$ 9,90/mês",
-  aprova_mensal: "Aprova+ - R$ 19,90/mês",
   essencial_anual: "Essencial - R$ 99,00/ano",
-  aprova_anual: "Aprova+ - R$ 199,00/ano"
+  aprova: "Aprova - R$ 19,90/mês",
 }
 
 export default function CadastroPage() {
@@ -33,14 +29,15 @@ export default function CadastroPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const planoInicial = searchParams.get("plano") || 'essencial_mensal';
-  const planoValido = Object.keys(planosDisponiveis).includes(planoInicial) ? planoInicial : "essencial_mensal";
+  const planoInicial = searchParams.get("plano")
+  const planoValido = planoInicial && Object.keys(planosDisponiveis).includes(planoInicial) ? planoInicial : "essencial_mensal"
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    // Extraído o "control" para usar com o Controller
     control, 
     formState: { errors },
   } = useForm<CadastroFormData>({
@@ -49,59 +46,35 @@ export default function CadastroPage() {
       plano: planoValido as any,
       aceitaTermos: false,
     },
-  });
+  })
 
   useEffect(() => {
-    setValue("plano", planoValido as any);
-  }, [planoValido, setValue]);
+    setValue("plano", planoValido as any)
+  }, [planoValido, setValue])
 
-  const watchedPlano = watch("plano");
+  const watchedPlano = watch("plano")
 
   const formatTelefone = (value: string) => {
     return value
       .replace(/\D/g, "")
       .replace(/(\d{2})(\d)/, "($1) $2")
       .replace(/(\d{5})(\d)/, "$1-$2")
-      .substring(0, 15);
-  };
+      .substring(0, 15)
+  }
 
   const onSubmit = async (data: CadastroFormData) => {
-    setIsLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.senha);
-      const user = userCredential.user;
-
-      await updateProfile(user, { displayName: data.nome });
-
-      await setDoc(doc(db, "users", user.uid), {
-        nome: data.nome,
-        email: data.email,
-        telefone: data.telefone,
-        planoId: data.plano,
-        statusAssinatura: "ativo",
-        dataCadastro: serverTimestamp(),
-        proximoVencimento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        role: "user"
-      });
-
-      toast.success("Conta criada com sucesso!");
-      router.push(data.plano === 'basico' ? '/dashboard' : `/pagamento?plano=${data.plano}`);
-    } catch (error: any) {
-      console.error("Erro no cadastro:", error);
-      if (error.code === 'auth/email-already-in-use') {
-        toast.error("Este e-mail já está em uso.");
-      } else {
-        toast.error("Ocorreu um erro ao criar a conta.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    setIsLoading(true)
+    console.log("Enviando dados para a API:", data)
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    setIsLoading(false)
+    router.push(`/pagamento?plano=${data.plano}`)
+  }
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-green-50 via-white to-teal-50 flex flex-col">
       <Navbar />
       <main className="w-full flex-grow grid grid-cols-1 lg:grid-cols-2">
+        
         <div className="flex flex-col justify-center items-start text-left p-8 md:p-12 lg:p-24">
           <div className="w-full max-w-md">
             <div className="flex items-center space-x-2 mb-4">
@@ -130,6 +103,7 @@ export default function CadastroPage() {
             </ul>
           </div>
         </div>
+
         <div className="flex flex-col justify-center items-center p-8 bg-white/50 lg:bg-transparent">
           <div className="w-full max-w-md">
             <Card className="bg-white/70 backdrop-blur-xl border-gray-200/50 shadow-lg rounded-2xl">
@@ -151,6 +125,7 @@ export default function CadastroPage() {
                     {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
                   </div>
 
+                  {/* CAMPO DE TELEFONE CORRIGIDO COM CONTROLLER */}
                   <div className="space-y-2">
                     <Label htmlFor="telefone">WhatsApp</Label>
                     <Controller
@@ -164,6 +139,7 @@ export default function CadastroPage() {
                           placeholder="(XX) XXXXX-XXXX"
                           onChange={(e) => {
                             const formatted = formatTelefone(e.target.value);
+                            // Atualiza o valor no campo e no estado do react-hook-form
                             field.onChange(formatted);
                           }}
                           className={errors.telefone ? "border-red-500" : ""}
@@ -210,17 +186,7 @@ export default function CadastroPage() {
                   </div>
 
                   <div className="flex items-start space-x-3 pt-2">
-                    <Controller
-                        name="aceitaTermos"
-                        control={control}
-                        render={({ field }) => (
-                            <Checkbox
-                                id="termos"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                            />
-                        )}
-                    />
+                    <Checkbox id="termos" onCheckedChange={(checked) => setValue("aceitaTermos", checked as boolean)} />
                     <div className="grid gap-1.5 leading-none">
                        <Label htmlFor="termos" className="text-sm font-normal">
                          Eu li e aceito os{" "}
@@ -233,7 +199,7 @@ export default function CadastroPage() {
 
                   <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 font-semibold text-base" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isLoading ? "Criando conta..." : "Criar e Continuar"}
+                    {isLoading ? "Criando conta..." : "Criar e ir para Pagamento"}
                   </Button>
                 </form>
 
