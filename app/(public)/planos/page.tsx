@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { CheckCircle, X, Zap, ChevronRight, Sparkles, ShieldCheck } from "lucide-react"
+import { CheckCircle, X, ChevronRight, Sparkles, ShieldCheck } from "lucide-react"
 
 export default function PlanosPage() {
   const planos = [
     {
       nome: "Básico",
+      id_mensal: "basico",
       preco: "R$ 0,00",
       periodo: "/mês",
       descricao: "Para quem quer começar a explorar",
@@ -25,6 +26,8 @@ export default function PlanosPage() {
     },
     {
       nome: "Essencial",
+      id_mensal: "essencial_mensal",
+      id_anual: "essencial_anual",
       preco: "R$ 9,90",
       periodo: "/mês",
       precoAnual: "R$ 99,00",
@@ -33,8 +36,6 @@ export default function PlanosPage() {
       popular: true,
       cta: "Assinar Plano Mensal",
       ctaAnual: "Assinar Plano Anual",
-      href: "/cadastro?plano=essencial_mensal",
-      hrefAnual: "/cadastro?plano=essencial_anual",
       recursos: [
         "Tudo do plano Básico",
         "Conteúdo do gabarito da OAB",
@@ -45,6 +46,8 @@ export default function PlanosPage() {
     },
     {
       nome: "Aprova+",
+      id_mensal: "aprova_mensal",
+      id_anual: "aprova_anual",
       preco: "R$ 19,90",
       periodo: "/mês",
       precoAnual: "R$ 199,00",
@@ -53,8 +56,6 @@ export default function PlanosPage() {
       popular: false,
       cta: "Assinar Plano Mensal",
       ctaAnual: "Assinar Plano Anual",
-      href: "/cadastro?plano=aprova_mensal",
-      hrefAnual: "/cadastro?plano=aprova_anual",
       recursos: [
         "Foco total na OAB e concursos",
         "Simulados e cronogramas",
@@ -128,7 +129,7 @@ export default function PlanosPage() {
                   </div>
 
                   <div className="pt-6 mt-auto">
-                    <Link href={plano.href}>
+                    <Link href={`/cadastro?plano=${plano.id_mensal}`}>
                       <Button
                         size="lg"
                         className={`w-full text-lg ${plano.popular 
@@ -140,7 +141,7 @@ export default function PlanosPage() {
                       </Button>
                     </Link>
                     
-                    {plano.precoAnual && (
+                    {plano.id_anual && (
                       <div className="mt-4 text-center">
                         <div className="relative my-2">
                           <div className="absolute inset-0 flex items-center" aria-hidden="true">
@@ -153,7 +154,7 @@ export default function PlanosPage() {
                         <p className="font-bold text-gray-900">
                           {plano.precoAnual} <span className="font-normal text-gray-500">{plano.periodoAnual}</span>
                         </p>
-                        <Link href={plano.hrefAnual!}>
+                        <Link href={`/cadastro?plano=${plano.id_anual}`}>
                           <Button 
                             variant="outline" 
                             size="lg"

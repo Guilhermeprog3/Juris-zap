@@ -3,15 +3,14 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { CheckCircle, AlertCircle, MessageSquare, DollarSign, Zap, Phone, Edit, X, Loader2 } from "lucide-react"
+import { CheckCircle, AlertCircle, MessageSquare, DollarSign, Zap, Phone, Edit, X, Loader2, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { NavbarAdm } from "@/components/navbar_adm"
-import { useRequireAuth } from "@/components/auth-provider"
+import { useRequireAuth, AuthLoader } from "@/components/auth-provider"
 import { auth, db } from "@/lib/firebase"
 import { doc, updateDoc, collection, query, getDocs, orderBy, limit } from "firebase/firestore"
 import { toast } from "sonner"
-import { AuthLoader } from "@/components/auth-provider"
 import { Label } from "@/components/ui/label"
 
 type Payment = {
@@ -91,8 +90,36 @@ export default function DashboardPage() {
   };
   
   if (loading || !userData) {
+    return <AuthLoader />;
+  }
+
+  const isSubscriptionActive = userData.statusAssinatura === 'ativo';
+
+  if (!isSubscriptionActive) {
     return (
-      <AuthLoader />
+        <div className="min-h-screen bg-red-50 flex flex-col items-center justify-center">
+            <NavbarAdm />
+            <div className="flex-grow flex items-center justify-center w-full">
+                <Card className="w-full max-w-md mx-4 text-center p-8 bg-white border-red-200 shadow-lg">
+                    <CardHeader>
+                        <AlertTriangle className="mx-auto h-12 w-12 text-red-500" />
+                        <CardTitle className="mt-4 text-2xl text-red-800">Assinatura Pendente</CardTitle>
+                        <CardDescription className="mt-2 text-gray-600">
+                            {userData.statusAssinatura === 'pagamento_atrasado'
+                                ? "Seu último pagamento falhou. Por favor, gerencie seus planos para reativar sua conta."
+                                : "Sua assinatura está inativa. Renove seu plano para continuar acessando todos os recursos."}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Link href="/dashboard/planos">
+                            <Button className="w-full bg-red-600 hover:bg-red-700">
+                                Gerenciar Assinatura
+                            </Button>
+                        </Link>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
     );
   }
 
@@ -190,8 +217,8 @@ export default function DashboardPage() {
                     </div>
                     <DollarSign className={`h-4 w-4 ${isPaymentOverdue ? 'text-red-500' : 'text-emerald-500'}`} />
                     </div>
-                    <Button className={`w-full ${isPaymentOverdue ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'}`} onClick={() => router.push(`/dashboard/pagamento?plano=${userData.planoId}`)}>
-                      {isPaymentOverdue ? 'Regularizar Pagamento Agora' : 'Antecipar Pagamento'}
+                    <Button className={`w-full ${isPaymentOverdue ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'}`} onClick={() => router.push(`/dashboard/planos`)}>
+                      {isPaymentOverdue ? 'Regularizar Pagamento Agora' : 'Gerenciar Assinatura'}
                     </Button>
                 </CardContent>
             </Card>

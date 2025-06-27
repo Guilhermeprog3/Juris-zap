@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -11,9 +10,8 @@ import {
   ArrowLeft, Calendar, CheckCircle, AlertTriangle, Scale, Gavel, X, LucideIcon, Zap, Sparkles, ChevronRight, Gem, Leaf, Loader2
 } from "lucide-react"
 import { NavbarAdm } from "@/components/navbar_adm"
-import { useRequireAuth } from "@/components/auth-provider"
-import { AuthLoader } from "@/components/auth-provider"
-import { db, auth } from "@/lib/firebase"
+import { useRequireAuth, AuthLoader } from "@/components/auth-provider"
+import { db } from "@/lib/firebase"
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore"
 import { toast } from "sonner"
 
@@ -75,6 +73,7 @@ export default function GerenciarPlanosPage() {
   const handleUpdatePlan = async (planoId: string) => {
     if (!user) return;
     setIsUpdating(planoId);
+
     try {
       const userDocRef = doc(db, "users", user.uid);
       await updateDoc(userDocRef, {
@@ -82,8 +81,8 @@ export default function GerenciarPlanosPage() {
         statusAssinatura: "ativo",
         proximoVencimento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       });
-      toast.success(`Plano atualizado para ${planoId}!`);
-      window.location.reload();
+      toast.success(`Plano atualizado para ${planoId}! A página será recarregada.`);
+      setTimeout(() => window.location.reload(), 2000);
     } catch (error) {
       toast.error("Erro ao atualizar o plano.");
       console.error(error);
@@ -100,9 +99,9 @@ export default function GerenciarPlanosPage() {
       await updateDoc(userDocRef, {
         statusAssinatura: "inativo"
       });
-      toast.success("Assinatura cancelada com sucesso.");
+      toast.success("Assinatura cancelada com sucesso. A página será recarregada.");
       setShowCancelModal(false);
-       window.location.reload();
+      setTimeout(() => window.location.reload(), 2000);
     } catch (error) {
       toast.error("Erro ao cancelar a assinatura.");
       console.error(error);
@@ -116,7 +115,7 @@ export default function GerenciarPlanosPage() {
   }
 
   const planoAtualDetalhes = planosDisponiveis.find(p => p.id === userData?.planoId);
-  const proximoPagamentoDate = userData?.proximoVencimento.toDate();
+  const proximoPagamentoDate = userData?.proximoVencimento?.toDate();
   const diasRestantes = proximoPagamentoDate ? Math.ceil((proximoPagamentoDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
   return (
@@ -147,7 +146,7 @@ export default function GerenciarPlanosPage() {
                   <div className="relative z-10">
                     <Scale className="h-10 w-10 mx-auto mb-3 text-emerald-200" />
                     <h3 className="text-xl font-bold">{planoAtualDetalhes?.nome || 'N/A'}</h3>
-                    <p className="text-3xl font-bold mt-2">R$ {planoAtualDetalhes?.preco.toFixed(2) || '0.00'}<span className="text-sm text-emerald-100 font-normal">/mês</span></p>
+                    <p className="text-3xl font-bold mt-2">R$ {planoAtualDetalhes?.preco?.toFixed(2) || '0.00'}<span className="text-sm text-emerald-100 font-normal">/mês</span></p>
                     <Badge className="mt-3 bg-white/20 text-white border-0">{userData?.statusAssinatura || 'N/A'}</Badge>
                   </div>
                 </div>
@@ -157,12 +156,12 @@ export default function GerenciarPlanosPage() {
                     <span className="text-gray-600 flex items-center"><Calendar className="h-4 w-4 mr-2 text-emerald-500" /> Próximo pagamento</span>
                     <div className="text-right">
                       <span className="font-semibold block">{proximoPagamentoDate?.toLocaleDateString("pt-BR", {timeZone: 'UTC'}) || 'N/A'}</span>
-                      <span className="text-xs text-gray-500">em {diasRestantes} dias</span>
+                      {diasRestantes > 0 && <span className="text-xs text-gray-500">em {diasRestantes} dias</span>}
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600 flex items-center"><CheckCircle className="h-4 w-4 mr-2 text-emerald-500" /> Membro desde</span>
-                    <span className="font-medium">{userData?.dataCadastro.toDate().toLocaleDateString("pt-BR", {timeZone: 'UTC'}) || 'N/A'}</span>
+                    <span className="font-medium">{userData?.dataCadastro?.toDate().toLocaleDateString("pt-BR", {timeZone: 'UTC'}) || 'N/A'}</span>
                   </div>
                 </div>
 
@@ -204,7 +203,7 @@ export default function GerenciarPlanosPage() {
                       disabled={plano.id === userData?.planoId || !!isUpdating}
                       onClick={() => handleUpdatePlan(plano.id)}
                     >
-                      {isUpdating === plano.id ? <Loader2 className="animate-spin" /> : plano.id === userData?.planoId ? "Plano Atual" : "Assinar Agora"}
+                      {isUpdating === plano.id ? <Loader2 className="animate-spin" /> : plano.id === userData?.planoId ? "Plano Atual" : (userData?.statusAssinatura === 'pagamento_atrasado' ? "Reativar com este plano" : "Mudar para este plano")}
                     </Button>
                   </CardContent>
                 </Card>

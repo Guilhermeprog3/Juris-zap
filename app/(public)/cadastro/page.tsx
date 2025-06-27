@@ -1,6 +1,5 @@
 "use client"
 import { useState, useEffect } from "react"
-// Adicionado o Controller
 import { useForm, Controller } from "react-hook-form" 
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
@@ -14,13 +13,28 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Eye, EyeOff, CheckCircle, Bot, Loader2 } from "lucide-react"
 import { cadastroSchema, type CadastroFormData } from "@/lib/validations"
+import { getFunctions, httpsCallable } from "firebase/functions"
+import { app } from "@/lib/firebase" // Importe a instância do app do firebase
+import { loadStripe } from '@stripe/stripe-js'
+import { toast } from "sonner"
+
+// ATENÇÃO: Substitua pelos seus Price IDs reais do Stripe
+const planosStripe = {
+  essencial_mensal: "price_1PQUF9GzRefxT3d9q5Ajd123", // Exemplo, troque pelo seu ID
+  essencial_anual: "price_1PQUFAGzRefxT3d9r6Bcd456",   // Exemplo, troque pelo seu ID
+  aprova_mensal: "price_1PQUFBGzRefxT3d9s7Efg789",     // Exemplo, troque pelo seu ID
+  aprova_anual: "price_1PQUFCGzRefxT3d9t8Hij012",      // Exemplo, troque pelo seu ID
+};
 
 const planosDisponiveis = {
-  basico: "Básico - Gratuito",
   essencial_mensal: "Essencial - R$ 9,90/mês",
   essencial_anual: "Essencial - R$ 99,00/ano",
-  aprova: "Aprova - R$ 19,90/mês",
-}
+  aprova_mensal: "Aprova+ - R$ 19,90/mês",
+  aprova_anual: "Aprova+ - R$ 199,00/ano",
+};
+
+// ATENÇÃO: Substitua pela sua chave publicável real do Stripe
+const stripePromise = loadStripe("pk_test_SUA_CHAVE_PUBLICAVEL");
 
 export default function CadastroPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -37,7 +51,6 @@ export default function CadastroPage() {
     handleSubmit,
     setValue,
     watch,
-    // Extraído o "control" para usar com o Controller
     control, 
     formState: { errors },
   } = useForm<CadastroFormData>({
@@ -63,11 +76,42 @@ export default function CadastroPage() {
   }
 
   const onSubmit = async (data: CadastroFormData) => {
-    setIsLoading(true)
-    console.log("Enviando dados para a API:", data)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    router.push(`/pagamento?plano=${data.plano}`)
+    setIsLoading(true);
+    const priceId = planosStripe[data.plano as keyof typeof planosStripe];
+    
+    if (!priceId) {
+        toast.error("Plano selecionado é inválido. Por favor, tente novamente.");
+        setIsLoading(false);
+        return;
+    }
+
+    try {
+        const stripe = await stripePromise;
+        if (!stripe) throw new Error("Stripe.js não foi carregado.");
+
+        const functions = getFunctions(app); // Use a instância do app importada
+        const createStripeCheckoutSession = httpsCallable(functions, 'createStripeCheckoutSession');
+        
+        const checkoutResponse = await createStripeCheckoutSession({ 
+            priceId: priceId,
+            email: data.email,
+            nome: data.nome,
+            telefone: data.telefone
+        });
+        
+        const { sessionId } = checkoutResponse.data as { sessionId: string };
+
+        const { error } = await stripe.redirectToCheckout({ sessionId });
+
+        if (error) {
+            toast.error(error.message || "Ocorreu um erro ao redirecionar para o pagamento.");
+            setIsLoading(false);
+        }
+    } catch (error: any) {
+        console.error("Erro ao processar pagamento:", error);
+        toast.error(error.message || "Não foi possível iniciar o processo de pagamento.");
+        setIsLoading(false);
+    }
   }
 
   return (
@@ -109,7 +153,7 @@ export default function CadastroPage() {
             <Card className="bg-white/70 backdrop-blur-xl border-gray-200/50 shadow-lg rounded-2xl">
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl">Crie sua Conta</CardTitle>
-                <CardDescription>É rápido, fácil e seguro.</CardDescription>
+                <CardDescription>É rápido, fácil e seguro. O pagamento é o último passo.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -125,7 +169,6 @@ export default function CadastroPage() {
                     {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
                   </div>
 
-                  {/* CAMPO DE TELEFONE CORRIGIDO COM CONTROLLER */}
                   <div className="space-y-2">
                     <Label htmlFor="telefone">WhatsApp</Label>
                     <Controller
@@ -139,7 +182,6 @@ export default function CadastroPage() {
                           placeholder="(XX) XXXXX-XXXX"
                           onChange={(e) => {
                             const formatted = formatTelefone(e.target.value);
-                            // Atualiza o valor no campo e no estado do react-hook-form
                             field.onChange(formatted);
                           }}
                           className={errors.telefone ? "border-red-500" : ""}
@@ -186,7 +228,17 @@ export default function CadastroPage() {
                   </div>
 
                   <div className="flex items-start space-x-3 pt-2">
-                    <Checkbox id="termos" onCheckedChange={(checked) => setValue("aceitaTermos", checked as boolean)} />
+                    <Controller
+                        name="aceitaTermos"
+                        control={control}
+                        render={({ field }) => (
+                            <Checkbox 
+                                id="termos"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                        )}
+                    />
                     <div className="grid gap-1.5 leading-none">
                        <Label htmlFor="termos" className="text-sm font-normal">
                          Eu li e aceito os{" "}
@@ -199,7 +251,7 @@ export default function CadastroPage() {
 
                   <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 font-semibold text-base" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isLoading ? "Criando conta..." : "Criar e ir para Pagamento"}
+                    {isLoading ? "Aguarde..." : "Continuar para o Pagamento"}
                   </Button>
                 </form>
 
