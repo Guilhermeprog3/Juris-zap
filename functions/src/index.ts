@@ -27,10 +27,7 @@ interface TopUpData {
 }
 
 export const createStripeCheckoutSession = functions.https.onCall(
-  async (data: any, context: any) => {
-    if (!context.auth) {
-      throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-    }
+  async (data: any) => {
     
     const { priceId, email, nome, telefone } = data as CreateCheckoutData;
     const stripeClient = getStripeClient();

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Validação para cadastro (sem alterações, já estava correta)
+// Validação para cadastro (com senha, caso use no futuro)
 export const cadastroSchema = z
   .object({
     nome: z
@@ -21,7 +21,8 @@ export const cadastroSchema = z
         "A senha precisa de uma letra minúscula, uma maiúscula e um número",
       ),
     confirmarSenha: z.string().min(1, "A confirmação de senha é obrigatória"),
-    plano: z.enum(["basico", "essencial_mensal", "essencial_anual", "aprova_mensal", "aprova_anual"], {
+    // Enum corrigido para refletir apenas os planos existentes
+    plano: z.enum(["basico", "essencial_mensal", "aprova_mensal"], {
       errorMap: () => ({ message: "Por favor, selecione um plano." })
     }),
     aceitaTermos: z.boolean().refine((val) => val === true, {
@@ -40,13 +41,12 @@ export const loginSchema = z.object({
   lembrarMe: z.boolean().optional(),
 });
 
-// Validação para cadastro sem senha (CORRIGIDA)
+// Validação para o fluxo de cadastro atual (sem senha)
 export const cadastroSemSenhaSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   email: z.string().email("E-mail inválido."),
   telefone: z.string().min(14, "O número de telefone parece inválido."),
   plano: z.string().min(1, "Você deve selecionar um plano."),
-  // CORREÇÃO: Alterado de z.literal(true) para z.boolean().refine(...)
   aceitaTermos: z.boolean().refine((val) => val === true, {
     message: "Você deve aceitar os termos de uso para continuar.",
   }),

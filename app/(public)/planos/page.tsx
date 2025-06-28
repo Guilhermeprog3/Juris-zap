@@ -11,7 +11,7 @@ export default function PlanosPage() {
     {
       nome: "Básico",
       id_mensal: "basico",
-      preco: "R$ 0,00",
+      preco: "R$ 19,90",
       periodo: "/mês",
       descricao: "Para quem quer começar a explorar",
       popular: false,
@@ -27,15 +27,12 @@ export default function PlanosPage() {
     {
       nome: "Essencial",
       id_mensal: "essencial_mensal",
-      id_anual: "essencial_anual",
       preco: "R$ 9,90",
       periodo: "/mês",
-      precoAnual: "R$ 99,00",
-      periodoAnual: "/ano (17% de desconto)",
       descricao: "A melhor escolha para estudantes",
       popular: true,
-      cta: "Assinar Plano Mensal",
-      ctaAnual: "Assinar Plano Anual",
+      cta: "Assinar Plano Essencial",
+      href: "/cadastro?plano=essencial_mensal",
       recursos: [
         "Tudo do plano Básico",
         "Conteúdo do gabarito da OAB",
@@ -47,15 +44,12 @@ export default function PlanosPage() {
     {
       nome: "Aprova+",
       id_mensal: "aprova_mensal",
-      id_anual: "aprova_anual",
-      preco: "R$ 19,90",
+      preco: "R$ 39,90",
       periodo: "/mês",
-      precoAnual: "R$ 199,00",
-      periodoAnual: "/ano (17% de desconto)",
       descricao: "Foco total na sua aprovação",
       popular: false,
-      cta: "Assinar Plano Mensal",
-      ctaAnual: "Assinar Plano Anual",
+      cta: "Assinar Aprova+",
+      href: "/cadastro?plano=aprova_mensal",
       recursos: [
         "Foco total na OAB e concursos",
         "Simulados e cronogramas",
@@ -129,7 +123,7 @@ export default function PlanosPage() {
                   </div>
 
                   <div className="pt-6 mt-auto">
-                    <Link href={`/cadastro?plano=${plano.id_mensal}`}>
+                    <Link href={plano.href}>
                       <Button
                         size="lg"
                         className={`w-full text-lg ${plano.popular 
@@ -140,31 +134,6 @@ export default function PlanosPage() {
                         <ChevronRight className="ml-2 h-5 w-5" />
                       </Button>
                     </Link>
-                    
-                    {plano.id_anual && (
-                      <div className="mt-4 text-center">
-                        <div className="relative my-2">
-                          <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                            <div className="w-full border-t border-gray-300" />
-                          </div>
-                          <div className="relative flex justify-center text-xs">
-                            <span className="bg-white px-2 text-gray-500">ou</span>
-                          </div>
-                        </div>
-                        <p className="font-bold text-gray-900">
-                          {plano.precoAnual} <span className="font-normal text-gray-500">{plano.periodoAnual}</span>
-                        </p>
-                        <Link href={`/cadastro?plano=${plano.id_anual}`}>
-                          <Button 
-                            variant="outline" 
-                            size="lg"
-                            className="w-full mt-2 text-lg border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-                          >
-                            {plano.ctaAnual}
-                          </Button>
-                        </Link>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>

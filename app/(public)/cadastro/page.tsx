@@ -19,16 +19,14 @@ import { loadStripe } from '@stripe/stripe-js'
 import { toast } from "sonner"
 
 const planosStripe = {
-  essencial_mensal: "price_1PQUF9GzRefxT3d9q5Ajd123",
-  essencial_anual: "price_1PQUFAGzRefxT3d9r6Bcd456",
-  aprova_mensal: "price_1PQUFBGzRefxT3d9s7Efg789",
-  aprova_anual: "price_1PQUFCGzRefxT3d9t8Hij012",
+  basico: "price_1RebU2QS7d5OCs0jbiATUpmz",
+  essencial_mensal: "price_1RebTQQS7d5OCs0jiP8TOGan",
+  aprova_mensal: "price_1RebUhQS7d5OCs0j70ePwyX2",
 };
 const planosDisponiveis = {
+  basico: "Básico - R$ 19,90/mês",
   essencial_mensal: "Essencial - R$ 9,90/mês",
-  essencial_anual: "Essencial - R$ 99,00/ano",
-  aprova_mensal: "Aprova+ - R$ 19,90/mês",
-  aprova_anual: "Aprova+ - R$ 199,00/ano",
+  aprova_mensal: "Aprova+ - R$ 39,90/mês",
 };
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -64,6 +62,12 @@ export default function CadastroPage() {
   const onSubmit = async (data: CadastroSemSenhaFormData) => {
     setIsLoading(true);
     const priceId = planosStripe[data.plano as keyof typeof planosStripe];
+
+    if (!priceId) {
+        toast.error("Plano selecionado inválido. Por favor, escolha outro plano.");
+        setIsLoading(false);
+        return;
+    }
     
     try {
         const stripe = await stripePromise;
