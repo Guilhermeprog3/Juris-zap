@@ -2,24 +2,19 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import Stripe from "stripe";
 
-// Inicializa o Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
 
-// --- INICIALIZAÇÃO PREGUIÇOSA DO STRIPE ---
 let stripe: Stripe;
-
 function getStripeClient() {
   if (!stripe) {
     stripe = new Stripe(functions.config().stripe.secret, {
-      apiVersion: "2025-05-28.basil",
+      apiVersion: "2024-04-10" as any,
       typescript: true,
     });
   }
   return stripe;
 }
-
-// --- Tipagem para os dados recebidos ---
 interface CreateCheckoutData {
   priceId: string;
   email: string;
@@ -31,19 +26,22 @@ interface TopUpData {
     amount: number;
 }
 
-// 1. Cria a sessão de checkout para um novo usuário
 export const createStripeCheckoutSession = functions.https.onCall(
-  async (request: functions.https.CallableRequest<CreateCheckoutData>) => {
-    const stripeClient = getStripeClient();
-    const { priceId, email, nome, telefone } = request.data;
-
-    if (!priceId || !email || !nome || !telefone) {
-      throw new functions.https.HttpsError("invalid-argument", "Dados essenciais estão faltando.");
+  async (data: any, context: any) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
     }
     
-    // Altere para as URLs do seu site em produção
-    const successUrl = "http://localhost:3000/dashboard?payment_success=true";
-    const cancelUrl = "http://localhost:3000/cadastro";
+    const { priceId, email, nome, telefone } = data as CreateCheckoutData;
+    const stripeClient = getStripeClient();
+
+    if (!priceId || !email || !nome || !telefone) {
+      throw new functions.https.HttpsError("invalid-argument", "Dados essenciais para o checkout estão faltando.");
+    }
+
+    const siteUrl = functions.config().site?.url || "http://localhost:3000";
+    const successUrl = `${siteUrl}/dashboard?payment_success=true`;
+    const cancelUrl = `${siteUrl}/cadastro`;
 
     try {
       const session = await stripeClient.checkout.sessions.create({
@@ -60,13 +58,11 @@ export const createStripeCheckoutSession = functions.https.onCall(
       });
       return { sessionId: session.id };
     } catch (error) {
-      console.error("Erro ao criar sessão de checkout:", error);
+      functions.logger.error("Erro ao criar sessão de checkout do Stripe:", error);
       throw new functions.https.HttpsError("internal", "Não foi possível criar a sessão de pagamento.");
     }
   }
 );
-
-// 2. Recebe e processa webhooks do Stripe
 export const stripeWebhook = functions.https.onRequest(async (req, res) => {
   const stripeClient = getStripeClient();
   const webhookSecret = functions.config().stripe.webhook_secret;
@@ -75,24 +71,33 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
   try {
     event = stripeClient.webhooks.constructEvent(req.rawBody, req.headers["stripe-signature"] as string, webhookSecret);
   } catch (err) {
+    functions.logger.error("Erro na verificação do webhook do Stripe:", (err as Error).message);
     res.status(400).send(`Webhook Error: ${(err as Error).message}`);
     return;
   }
+  
+  const dataObject: any = event.data.object;
 
   switch (event.type) {
     case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const email = session.customer_details?.email;
-      const nome = session.metadata?.firebase_nome;
-      const telefone = session.metadata?.firebase_telefone;
-      const stripeSubscriptionId = session.subscription as string;
+      const email = dataObject.customer_details?.email;
+      const nome = dataObject.metadata?.firebase_nome;
+      const telefone = dataObject.metadata?.firebase_telefone;
+      const stripeSubscriptionId = dataObject.subscription;
 
-      if (!email || !nome || !telefone || !stripeSubscriptionId) break;
+      if (!email || !nome || !telefone || !stripeSubscriptionId) {
+        functions.logger.error("Webhook 'checkout.session.completed' com dados insuficientes.", { session: dataObject });
+        break;
+      }
 
       try {
         const subscription = await stripeClient.subscriptions.retrieve(stripeSubscriptionId);
         const planoId = subscription.items.data[0]?.price.id;
-        if (!planoId) break;
+
+        if (!planoId) {
+          functions.logger.error(`Não foi possível encontrar o planoId para a assinatura: ${stripeSubscriptionId}`);
+          break;
+        }
         
         const userRecord = await admin.auth().createUser({ email, emailVerified: true, displayName: nome, phoneNumber: telefone });
         
@@ -104,59 +109,62 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
           proximoVencimento: admin.firestore.Timestamp.fromMillis((subscription as any).current_period_end * 1000),
           role: "user",
         });
+        functions.logger.info(`Usuário criado com sucesso: ${userRecord.uid} para o cliente Stripe ${subscription.customer as string}`);
+
       } catch (error) {
-        console.error("Erro em checkout.session.completed:", error);
+        functions.logger.error("Erro ao processar 'checkout.session.completed':", error);
       }
       break;
     }
     case "invoice.payment_succeeded": {
-        const invoice = event.data.object as Stripe.Invoice;
-        const subscriptionId = (invoice as any).subscription;
-        if (invoice.billing_reason === "subscription_cycle" && invoice.customer && subscriptionId) {
-            const customerId = invoice.customer as string;
-            const subscription = await stripeClient.subscriptions.retrieve(subscriptionId as string);
-            const userQuery = await db.collection("users").where("stripeCustomerId", "==", customerId).limit(1).get();
-            if (!userQuery.empty) {
-                await userQuery.docs[0].ref.update({
-                    statusAssinatura: "ativo",
-                    proximoVencimento: admin.firestore.Timestamp.fromMillis((subscription as any).current_period_end * 1000),
-                });
-            }
+      if (dataObject.billing_reason === "subscription_cycle" && dataObject.customer && dataObject.subscription) {
+        try {
+          const customerId = dataObject.customer;
+          const subscription = await stripeClient.subscriptions.retrieve(dataObject.subscription);
+          const userQuery = await db.collection("users").where("stripeCustomerId", "==", customerId).limit(1).get();
+
+          if (!userQuery.empty) {
+            await userQuery.docs[0].ref.update({
+              statusAssinatura: "ativo",
+              proximoVencimento: admin.firestore.Timestamp.fromMillis((subscription as any).current_period_end * 1000),
+            });
+            functions.logger.info(`Assinatura renovada para o cliente Stripe ${customerId}`);
+          }
+        } catch (error) {
+          functions.logger.error("Erro ao processar 'invoice.payment_succeeded':", error);
         }
-        break;
+      }
+      break;
     }
-    case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        if (invoice.customer) {
-            const customerId = invoice.customer as string;
-            const userQuery = await db.collection("users").where("stripeCustomerId", "==", customerId).limit(1).get();
-            if (!userQuery.empty) {
-                await userQuery.docs[0].ref.update({ statusAssinatura: "pagamento_atrasado" });
-            }
-        }
-        break;
-    }
+    case "invoice.payment_failed":
     case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
-        const userQuery = await db.collection("users").where("stripeCustomerId", "==", customerId).limit(1).get();
-        if (!userQuery.empty) {
-            await userQuery.docs[0].ref.update({ statusAssinatura: "inativo" });
+      const customerId = dataObject.customer;
+      const newStatus = event.type === 'invoice.payment_failed' ? 'pagamento_atrasado' : 'inativo';
+      if (customerId) {
+        try {
+            const userQuery = await db.collection("users").where("stripeCustomerId", "==", customerId).limit(1).get();
+            if (!userQuery.empty) {
+                await userQuery.docs[0].ref.update({ statusAssinatura: newStatus });
+                functions.logger.info(`Status do cliente ${customerId} atualizado para ${newStatus}`);
+            }
+        } catch (error) {
+            functions.logger.error(`Erro ao processar '${event.type}':`, error);
         }
-        break;
+      }
+      break;
     }
   }
+
   res.status(200).send({ received: true });
 });
 
-// 3. Cria um link para o Portal do Cliente Stripe
-export const createCustomerPortalSession = functions.https.onCall(async (request) => {
-  if (!request.auth) {
-    throw new functions.https.HttpsError("unauthenticated", "Usuário não autenticado.");
+export const createCustomerPortalSession = functions.https.onCall(async (data: any, context: any) => {
+  if (!context || !context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
   }
   
   const stripeClient = getStripeClient();
-  const uid = request.auth.uid;
+  const uid = context.auth.uid;
   const userDoc = await db.collection("users").doc(uid).get();
   const stripeCustomerId = userDoc.data()?.stripeCustomerId;
 
@@ -164,27 +172,31 @@ export const createCustomerPortalSession = functions.https.onCall(async (request
     throw new functions.https.HttpsError("not-found", "ID de cliente Stripe não encontrado.");
   }
   
-  const returnUrl = "http://localhost:3000/dashboard/planos";
+  const siteUrl = functions.config().site?.url || "http://localhost:3000";
+  const returnUrl = `${siteUrl}/dashboard/planos`;
 
-  const portalSession = await stripeClient.billingPortal.sessions.create({
-    customer: stripeCustomerId,
-    return_url: returnUrl,
-  });
-  return { url: portalSession.url };
+  try {
+      const portalSession = await stripeClient.billingPortal.sessions.create({
+        customer: stripeCustomerId,
+        return_url: returnUrl,
+      });
+      return { url: portalSession.url };
+  } catch (error) {
+      functions.logger.error("Erro ao criar sessão do portal do cliente:", error);
+      throw new functions.https.HttpsError("internal", "Não foi possível criar a sessão do portal do cliente.");
+  }
 });
-
-// 4. Cria uma sessão para adicionar créditos
-export const createTopUpSession = functions.https.onCall(async (request: functions.https.CallableRequest<TopUpData>) => {
-    if (!request.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "Usuário não autenticado.");
+export const createTopUpSession = functions.https.onCall(async (data: any, context: any) => {
+    if (!context || !context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
     }
 
     const stripeClient = getStripeClient();
-    const uid = request.auth.uid;
-    const { amount } = request.data;
+    const uid = context.auth.uid;
+    const { amount } = data as TopUpData;
 
-    if (!amount || amount < 500) {
-        throw new functions.https.HttpsError("invalid-argument", "O valor mínimo é de R$ 5,00.");
+    if (typeof amount !== 'number' || amount < 500) {
+        throw new functions.https.HttpsError("invalid-argument", "O valor mínimo para recarga é de R$ 5,00.");
     }
 
     const userDoc = await db.collection("users").doc(uid).get();
@@ -194,23 +206,29 @@ export const createTopUpSession = functions.https.onCall(async (request: functio
         throw new functions.https.HttpsError("not-found", "ID de cliente Stripe não encontrado.");
     }
     
-    const successUrl = "http://localhost:3000/dashboard?topup_success=true";
-    const cancelUrl = "http://localhost:3000/dashboard";
+    const siteUrl = functions.config().site?.url || "http://localhost:3000";
+    const successUrl = `${siteUrl}/dashboard?topup_success=true`;
+    const cancelUrl = `${siteUrl}/dashboard`;
 
-    const session = await stripeClient.checkout.sessions.create({
-        payment_method_types: ['card'],
-        mode: 'payment',
-        line_items: [{
-            price_data: {
-                currency: 'brl',
-                product_data: { name: 'Créditos Adicionais' },
-                unit_amount: amount,
-            },
-            quantity: 1,
-        }],
-        customer: stripeCustomerId,
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-    });
-    return { sessionId: session.id };
+    try {
+        const session = await stripeClient.checkout.sessions.create({
+            payment_method_types: ['card'],
+            mode: 'payment',
+            line_items: [{
+                price_data: {
+                    currency: 'brl',
+                    product_data: { name: 'Créditos Adicionais' },
+                    unit_amount: amount,
+                },
+                quantity: 1,
+            }],
+            customer: stripeCustomerId,
+            success_url: successUrl,
+            cancel_url: cancelUrl,
+        });
+        return { sessionId: session.id };
+    } catch (error) {
+        functions.logger.error("Erro ao criar sessão de recarga:", error);
+        throw new functions.https.HttpsError("internal", "Não foi possível criar a sessão de recarga.");
+    }
 });
