@@ -34,7 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   logout: async () => {},
 });
 
-const AuthLoader = () => (
+export const AuthLoader = () => (
     <div className="flex h-screen items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
     </div>

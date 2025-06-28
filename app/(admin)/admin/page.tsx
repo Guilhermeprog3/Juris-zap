@@ -23,7 +23,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { NavbarAdm } from "@/components/navbar_adm"
-import { useRequireAuth, AuthLoader } from "@/components/auth-provider"
+import { useRequireAuth, AuthLoader } from "@/app/context/authcontext"
 import { db } from "@/lib/firebase"
 import { collection, getDocs, query, doc, updateDoc, Timestamp } from "firebase/firestore"
 import { toast } from "sonner"
@@ -93,12 +93,11 @@ const columns: ColumnDef<Usuario>[] = [
 ];
 
 export default function AdminPage() {
-  const { userData, loading: authLoading } = useRequireAuth('admin');
+  const { user, loading: authLoading } = useRequireAuth('admin');
   
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   
   const [stats, setStats] = useState({
     totalUsuarios: 0,
@@ -114,7 +113,7 @@ export default function AdminPage() {
   const [planFilter, setPlanFilter] = useState('todos');
 
   useEffect(() => {
-    if (userData?.role === 'admin') {
+    if (user?.role === 'admin') {
       const fetchData = async () => {
         setIsLoadingData(true);
         try {
@@ -158,7 +157,7 @@ export default function AdminPage() {
       };
       fetchData();
     }
-  }, [userData]);
+  }, [user]);
 
   const filteredData = useMemo(() => {
     let filteredUsers = [...usuarios];
@@ -189,27 +188,7 @@ export default function AdminPage() {
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  const handlePlanChange = (planId: string, field: 'nome' | 'preco', value: string | number) => {
-    setPlans(currentPlans => currentPlans.map(p => (p.id === planId ? { ...p, [field]: value } : p)));
-  };
-
-  const handleSavePlans = async () => {
-    setIsSaving(true);
-    const updatePromises = plans.map(plan => {
-        const planRef = doc(db, "planos", plan.id);
-        return updateDoc(planRef, { nome: plan.nome, preco: Number(plan.preco) });
-    });
-    try {
-        await Promise.all(updatePromises);
-        toast.success("Planos atualizados com sucesso!");
-    } catch(error) {
-        toast.error("Erro ao salvar os planos.");
-    } finally {
-        setIsSaving(false);
-    }
-  };
-
-  if (authLoading || (userData?.role === 'admin' && isLoadingData)) {
+  if (authLoading || (user?.role === 'admin' && isLoadingData)) {
     return <AuthLoader />;
   }
 
@@ -274,26 +253,34 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="assinaturas" className="space-y-4">
-            <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5 text-emerald-600" />Configuração de Planos</CardTitle><CardDescription>Altere o nome e os valores dos planos de assinatura.</CardDescription></CardHeader>
+             <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-emerald-600" />
+                  Visualização de Planos
+                </CardTitle>
+                <CardDescription>
+                  Abaixo estão os planos de assinatura atuais.
+                  <br />
+                  <span className="font-semibold text-amber-700">
+                    Importante: A edição de nomes e preços deve ser feita diretamente no seu painel do Stripe para garantir consistência.
+                  </span>
+                </CardDescription>
+              </CardHeader>
               <CardContent>
                 <div className="space-y-6">
                   {plans.map((plan) => (
-                    <div key={plan.id} className="flex flex-col md:flex-row items-center justify-between p-4 border rounded-lg gap-4">
+                    <div key={plan.id} className="flex flex-col md:flex-row items-center justify-between p-4 border rounded-lg gap-4 bg-gray-50">
                         <div className="w-full space-y-2">
                             <Label htmlFor={`name-${plan.id}`}>Nome do Plano</Label>
-                            <Input id={`name-${plan.id}`} type="text" value={plan.nome} onChange={(e) => handlePlanChange(plan.id, 'nome', e.target.value)} className="w-full"/>
+                            <Input id={`name-${plan.id}`} type="text" value={plan.nome} readOnly className="w-full bg-white cursor-not-allowed"/>
                         </div>
                         <div className="w-full md:w-auto space-y-2">
                             <Label htmlFor={`price-${plan.id}`}>Preço (R$)</Label>
-                            <Input id={`price-${plan.id}`} type="number" value={plan.preco} onChange={(e) => handlePlanChange(plan.id, 'preco', parseFloat(e.target.value) || 0)} className="w-full md:w-32"/>
+                            <Input id={`price-${plan.id}`} type="number" value={plan.preco} readOnly className="w-full md:w-32 bg-white cursor-not-allowed"/>
                         </div>
                     </div>
                   ))}
-                  <Button onClick={handleSavePlans} disabled={isSaving}>
-                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Salvar Alterações nos Planos
-                  </Button>
                 </div>
               </CardContent>
             </Card>
