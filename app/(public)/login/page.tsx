@@ -12,54 +12,32 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, Loader2, BookCheck } from "lucide-react"
 import { loginSchema, type LoginFormData } from "@/lib/validations"
-import { auth, db } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { useAuth } from "@/app/context/authcontext"
 import { toast } from "sonner";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { login } = useAuth();
 
   const {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      lembrarMe: false,
-    },
+    defaultValues: { lembrarMe: false },
   })
 
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.senha);
-      const user = userCredential.user;
-
-      const userDocRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        toast.success(`Bem-vindo(a) de volta, ${userData.nome}!`);
-
-        if (userData.role === 'admin') {
-          router.push("/admin");
-        } else {
-          router.push("/dashboard");
-        }
-      } else {
-        toast.success("Login realizado com sucesso!");
-        router.push("/dashboard");
-      }
-
+      await login(data.email, data.senha);
+      toast.success("Login realizado com sucesso! Redirecionando...");
+      router.push("/dashboard"); 
     } catch (error: any) {
-      console.error("Erro no login:", error);
       toast.error("E-mail ou senha incorretos. Por favor, tente novamente.");
     } finally {
       setIsLoading(false);
@@ -72,16 +50,12 @@ export default function LoginPage() {
       <main className="w-full flex-grow grid grid-cols-1 lg:grid-cols-2">
         <div className="flex flex-col justify-center items-start text-left p-8 md:p-12 lg:p-24">
           <div className="w-full max-w-md">
-             <div className="flex items-center space-x-2 mb-4">
-                <BookCheck className="h-8 w-8 text-green-600" />
-                <span className="text-xl font-bold text-gray-900">JurisZap</span>
+            <div className="flex items-center space-x-2 mb-4">
+              <BookCheck className="h-8 w-8 text-green-600" />
+              <span className="text-xl font-bold text-gray-900">JurisZap</span>
             </div>
-            <h1 className="text-4xl lg:text-5xl font-extrabold text-green-900 mb-6 tracking-tight">
-              Bem-vindo(a) de volta!
-            </h1>
-            <p className="text-lg text-gray-600">
-              Acesse sua conta para continuar transformando seus estudos com o poder da nossa IA.
-            </p>
+            <h1 className="text-4xl lg:text-5xl font-extrabold text-green-900 mb-6 tracking-tight">Bem-vindo(a) de volta!</h1>
+            <p className="text-lg text-gray-600">Acesse sua conta para continuar transformando seus estudos com o poder da nossa IA.</p>
           </div>
         </div>
         <div className="flex flex-col justify-center items-center p-8 bg-white/50 lg:bg-transparent">
@@ -98,7 +72,6 @@ export default function LoginPage() {
                     <Input id="email" type="email" {...register("email")} className={errors.email ? "border-red-500" : ""} />
                     {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
                   </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="senha">Senha</Label>
                     <div className="relative">
@@ -109,30 +82,20 @@ export default function LoginPage() {
                     </div>
                     {errors.senha && <p className="text-sm text-red-500">{errors.senha.message}</p>}
                   </div>
-
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Checkbox id="lembrar" onCheckedChange={(checked) => setValue("lembrarMe", checked as boolean)} />
                       <Label htmlFor="lembrar" className="text-sm font-normal">Lembrar-me</Label>
                     </div>
-                    <Link href="/recuperar-senha" className="text-sm font-semibold text-green-600 hover:underline">
-                      Esqueceu a senha?
-                    </Link>
+                    <Link href="/recuperar-senha" className="text-sm font-semibold text-green-600 hover:underline">Esqueceu a senha?</Link>
                   </div>
-                  
                   <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 font-semibold text-base" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Entrar
                   </Button>
                 </form>
-
                 <div className="mt-6 text-center">
-                  <p className="text-sm text-gray-600">
-                    Não tem uma conta?{" "}
-                    <Link href="/cadastro" className="font-semibold text-green-600 hover:underline">
-                      Criar conta
-                    </Link>
-                  </p>
+                  <p className="text-sm text-gray-600">Não tem uma conta? <Link href="/cadastro" className="font-semibold text-green-600 hover:underline">Criar conta</Link></p>
                 </div>
               </CardContent>
             </Card>

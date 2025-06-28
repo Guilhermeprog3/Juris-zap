@@ -79,6 +79,16 @@ export const pagamentoCartaoSchema = z.object({
   }),
 })
 
+export const cadastroSemSenhaSchema = z.object({
+  nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
+  email: z.string().email("E-mail inválido."),
+  telefone: z.string().min(14, "O número de telefone parece inválido."),
+  plano: z.string().min(1, "Você deve selecionar um plano."),
+  aceitaTermos: z.literal(true, {
+    errorMap: () => ({ message: "Você deve aceitar os termos de uso." }),
+  }),
+});
+export type CadastroSemSenhaFormData = z.infer<typeof cadastroSemSenhaSchema>;
 export type CadastroFormData = z.infer<typeof cadastroSchema>
 export type LoginFormData = z.infer<typeof loginSchema>
 export type PagamentoCartaoFormData = z.infer<typeof pagamentoCartaoSchema>
