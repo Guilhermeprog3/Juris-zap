@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState, useContext, createContext, ReactNode } from 'react';
+import React, { useEffect, useState, useContext, createContext, ReactNode } from 'react';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot, Timestamp } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { app } from '@/lib/firebase';
-import { AuthLoader } from '@/components/auth-provider';
+import { Loader2 } from 'lucide-react';
 import { toast } from "sonner";
 
-// Tipagem para os dados do usuário no Firestore
 interface UserProfile {
   uid: string;
   nome: string;
@@ -21,7 +20,6 @@ interface UserProfile {
   proximoVencimento?: Timestamp;
 }
 
-// Tipagem para o valor do Contexto
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
@@ -29,7 +27,6 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-// Criação do Contexto com valor inicial
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
@@ -37,48 +34,55 @@ const AuthContext = createContext<AuthContextType>({
   logout: async () => {},
 });
 
-// Componente Provedor
+const AuthLoader = () => (
+    <div className="flex h-screen items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+    </div>
+);
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         
-        const unsubDoc = onSnapshot(userDocRef, (docSnapshot) => {
+        const unsubscribeDoc = onSnapshot(userDocRef, (docSnapshot) => {
           if (docSnapshot.exists()) {
             const userData = { uid: firebaseUser.uid, ...docSnapshot.data() } as UserProfile;
             setUser(userData);
             
             // Lógica de Redirecionamento Baseada no Status
-            if (userData.statusAssinatura === 'pagamento_atrasado') {
-              toast.warning("Seu pagamento está pendente. Por favor, atualize seus dados.");
-              router.push('/dashboard/planos');
-            } else if (userData.statusAssinatura === 'inativo') {
+            const isPendentePage = pathname === '/pagamento-pendente';
+            const isPlanosPage = pathname === '/dashboard/planos';
+
+            if (userData.statusAssinatura === 'pagamento_atrasado' && !isPendentePage) {
+              router.push('/pagamento-pendente'); 
+            } else if (userData.statusAssinatura === 'inativo' && !isPlanosPage) {
               toast.error("Sua assinatura está inativa. Reative para continuar.");
               router.push('/dashboard/planos');
             }
             
           } else {
-            // Usuário existe no Auth mas foi removido do Firestore, força logout
             signOut(auth);
           }
           setLoading(false);
         });
-        return () => unsubDoc(); // Limpa o listener do documento
+        return () => unsubscribeDoc();
       } else {
         setUser(null);
         setLoading(false);
       }
     });
-    return () => unsubscribe(); // Limpa o listener de autenticação
-  }, [router]);
+    return () => unsubscribeAuth();
+  }, [router, pathname]);
 
   const login = (email: string, password: string): Promise<any> => {
     const auth = getAuth(app);
@@ -100,11 +104,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
-// Hook customizado para usar o contexto
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
   return context;
+};
+
+export const useRequireAuth = (role?: 'admin') => {
+    const authState = useAuth();
+    const router = useRouter();
+  
+    useEffect(() => {
+      if (!authState.loading) {
+        if (!authState.user) {
+          router.push('/login');
+        } else if (role === 'admin' && authState.user?.role !== 'admin') {
+          router.push('/dashboard'); 
+        }
+      }
+    }, [authState, router, role]);
+  
+    return authState;
 };

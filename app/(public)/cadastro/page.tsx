@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { useForm, Controller } from "react-hook-form" 
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,15 +12,14 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CheckCircle, Bot, Loader2 } from "lucide-react"
-// ATENÇÃO: Você precisará criar este novo schema em lib/validations.ts
 import { cadastroSemSenhaSchema, type CadastroSemSenhaFormData } from "@/lib/validations" 
-import { getFunctions, httpsCallable } from "firebase/functions"
-import { app } from "@/lib/firebase" 
+import { httpsCallable } from "firebase/functions"
+import { functions } from "@/lib/firebase" 
 import { loadStripe } from '@stripe/stripe-js'
 import { toast } from "sonner"
 
 const planosStripe = {
-  essencial_mensal: "price_1PQUF9GzRefxT3d9q5Ajd123", // Substitua pelos seus IDs de preço reais
+  essencial_mensal: "price_1PQUF9GzRefxT3d9q5Ajd123",
   essencial_anual: "price_1PQUFAGzRefxT3d9r6Bcd456",
   aprova_mensal: "price_1PQUFBGzRefxT3d9s7Efg789",
   aprova_anual: "price_1PQUFCGzRefxT3d9t8Hij012",
@@ -70,7 +69,6 @@ export default function CadastroPage() {
         const stripe = await stripePromise;
         if (!stripe) throw new Error("Stripe.js não foi carregado.");
 
-        const functions = getFunctions(app);
         const createStripeCheckoutSession = httpsCallable(functions, 'createStripeCheckoutSession');
         
         const checkoutResponse = await createStripeCheckoutSession({ 
@@ -87,7 +85,7 @@ export default function CadastroPage() {
             toast.error(error.message || "Erro ao redirecionar para o pagamento.");
         }
     } catch (error: any) {
-        toast.error(error.details?.message || "Não foi possível iniciar o pagamento.");
+        toast.error(error.message || "Não foi possível iniciar o pagamento. Tente novamente mais tarde.");
     } finally {
       setIsLoading(false);
     }
