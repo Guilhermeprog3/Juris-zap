@@ -5,12 +5,11 @@ import Stripe from "stripe";
 // Inicialize o Firebase Admin SDK
 admin.initializeApp();
 const db = admin.firestore();
+const auth = admin.auth();
 
-// Define os segredos que serão usados. O Firebase irá buscá-los do Google Secret Manager.
 const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET");
 
-// A URL do seu site.
 const siteUrl = process.env.SITE_URL || "http://localhost:3000"; 
 
 interface CreateCheckoutData {
@@ -199,7 +198,7 @@ export const createCustomerPortalSession = functions.https.onCall(
       throw new functions.https.HttpsError("not-found", "ID de cliente Stripe não encontrado.");
     }
     
-    const returnUrl = `${siteUrl}/dashboard/planos`;
+    const returnUrl = `${siteUrl}/dashboard`;
 
     try {
         const portalSession = await stripeClient.billingPortal.sessions.create({
@@ -266,3 +265,56 @@ export const createTopUpSession = functions.https.onCall(
       }
   }
 );
+
+export const checkUserExists = functions.https.onCall(async (data) => {
+  const { email, telefone } = data.data;
+
+  if (!email && !telefone) {
+    throw new functions.https.HttpsError("invalid-argument", "E-mail ou telefone são obrigatórios para a verificação.");
+  }
+
+  try {
+    let emailExists = false;
+    let phoneExists = false;
+
+    if (email) {
+      try {
+        await auth.getUserByEmail(email);
+        emailExists = true;
+      } catch (error: any) {
+        if (error.code !== 'auth/user-not-found') {
+          functions.logger.error("Erro ao verificar email no Firebase Auth:", error);
+          throw new functions.https.HttpsError("internal", "Erro ao verificar o email.");
+        }
+      }
+    }
+
+    if (telefone) {
+      // O Firebase Auth armazena números de telefone no formato E.164.
+      // Certifique-se de formatar o telefone recebido para este padrão.
+      const formattedPhoneNumber = `+55${telefone.replace(/\D/g, '')}`; // Exemplo para o Brasil
+      try {
+        await auth.getUserByPhoneNumber(formattedPhoneNumber);
+        phoneExists = true;
+      } catch (error: any) {
+        if (error.code !== 'auth/user-not-found') {
+          functions.logger.error("Erro ao verificar telefone no Firebase Auth:", error);
+          throw new functions.https.HttpsError("internal", "Erro ao verificar o telefone.");
+        }
+      }
+    }
+
+    if (emailExists && phoneExists) {
+      return { exists: true, message: "Já existe uma conta com este e-mail e telefone." };
+    } else if (emailExists) {
+      return { exists: true, message: "Já existe uma conta com este e-mail." };
+    } else if (phoneExists) {
+      return { exists: true, message: "Já existe uma conta com este telefone." };
+    } else {
+      return { exists: false };
+    }
+  } catch (error) {
+    functions.logger.error("Erro inesperado na função checkUserExists:", error);
+    throw new functions.https.HttpsError("internal", "Erro interno ao verificar os dados.");
+  }
+});

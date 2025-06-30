@@ -9,7 +9,6 @@ import {
   ArrowLeft, Calendar, CheckCircle, AlertTriangle, Scale, Gavel, X, LucideIcon, Zap, Sparkles, Gem, Leaf, Loader2
 } from "lucide-react"
 import { NavbarAdm } from "@/components/navbar_adm"
-// CORREÇÃO: Importando 'useRequireAuth' e 'AuthLoader' do local correto
 import { useRequireAuth } from "@/app/context/authcontext"
 import { db, functions } from "@/lib/firebase"
 import { httpsCallable } from "firebase/functions"
@@ -34,8 +33,6 @@ const planIcons: { [key: string]: LucideIcon } = {
   default: Gem
 };
 
-// Componente AuthLoader movido para dentro do arquivo para simplificar,
-// ou poderia ser importado de app/context/authcontext.tsx
 const AuthLoader = () => {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -45,7 +42,6 @@ const AuthLoader = () => {
 };
 
 export default function GerenciarPlanosPage() {
-  // CORREÇÃO: 'userData' foi substituído por 'user'
   const { user, loading: authLoading } = useRequireAuth();
   const [planosDisponiveis, setPlanosDisponiveis] = useState<Plan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
@@ -88,7 +84,6 @@ export default function GerenciarPlanosPage() {
     return <AuthLoader />;
   }
 
-  // CORREÇÃO: 'userData' foi substituído por 'user'
   const planoAtualDetalhes = planosDisponiveis.find(p => p.id === user?.planoId);
   const proximoPagamentoDate = user?.proximoVencimento?.toDate();
 
@@ -111,7 +106,6 @@ export default function GerenciarPlanosPage() {
             <CardHeader>
                 <CardTitle className="flex items-center text-lg"><Gem className="h-5 w-5 text-emerald-600 mr-3" />Seu Plano Atual: {planoAtualDetalhes?.nome || 'N/A'}</CardTitle>
                 <CardDescription>
-                  {/* CORREÇÃO: 'userData' foi substituído por 'user' */}
                   Status: <Badge variant={user?.statusAssinatura === 'ativo' ? 'default' : 'destructive'}>{user?.statusAssinatura || 'N/A'}</Badge>
                 </CardDescription>
             </CardHeader>

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CheckCircle, Bot, Loader2 } from "lucide-react"
+import { CheckCircle, Bot, Loader2, AlertTriangle } from "lucide-react"
 import { cadastroSemSenhaSchema, type CadastroSemSenhaFormData } from "@/lib/validations" 
 import { httpsCallable } from "firebase/functions"
 import { functions } from "@/lib/firebase" 
@@ -61,6 +61,25 @@ export default function CadastroPage() {
 
   const onSubmit = async (data: CadastroSemSenhaFormData) => {
     setIsLoading(true);
+
+    // --- ADIÇÃO: Verifica se o utilizador já existe antes de prosseguir ---
+    try {
+        const checkUser = httpsCallable(functions, 'checkUserExists');
+        const userCheckResult = await checkUser({ email: data.email, telefone: data.telefone });
+        const resultData = userCheckResult.data as { exists: boolean, message?: string };
+
+        if (resultData.exists) {
+            toast.error(resultData.message || "Já existe uma conta com este e-mail ou telefone.");
+            setIsLoading(false);
+            return; // Interrompe a execução se o utilizador já existir
+        }
+    } catch (error: any) {
+        toast.error(error.message || "Erro ao verificar os seus dados. Tente novamente.");
+        setIsLoading(false);
+        return;
+    }
+    // --- FIM DA VERIFICAÇÃO ---
+
     const priceId = planosStripe[data.plano as keyof typeof planosStripe];
 
     if (!priceId) {
@@ -112,6 +131,18 @@ export default function CadastroPage() {
               <li className="flex items-center text-gray-700"><CheckCircle className="h-6 w-6 text-green-600 mr-3 flex-shrink-0" />Auxílio inteligente na resolução de exercícios.</li>
               <li className="flex items-center text-gray-700"><CheckCircle className="h-6 w-6 text-green-600 mr-3 flex-shrink-0" />Integração total com o WhatsApp.</li>
             </ul>
+            {/* --- ADIÇÃO: Aviso sobre o email --- */}
+            <div className="mt-8 p-4 bg-amber-100/60 border-l-4 border-amber-500 text-amber-900 rounded-r-lg">
+                <div className="flex">
+                    <div className="py-1">
+                        <AlertTriangle className="h-6 w-6 text-amber-500 mr-3 flex-shrink-0" />
+                    </div>
+                    <div>
+                        <p className="font-bold">Atenção</p>
+                        <p className="text-sm">Use um e-mail que você tenha acesso. Ele será seu principal meio de login e recuperação de conta.</p>
+                    </div>
+                </div>
+            </div>
           </div>
         </div>
         <div className="flex flex-col justify-center items-center p-8 bg-white/50 lg:bg-transparent">

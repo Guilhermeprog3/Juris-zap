@@ -49,17 +49,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const auth = getAuth(app);
     const db = getFirestore(app);
+    let unsubscribeDoc: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+      // Limpa a escuta anterior ao reavaliar o usuário, evitando memory leaks.
+      if (unsubscribeDoc) {
+        unsubscribeDoc();
+      }
+
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         
-        const unsubscribeDoc = onSnapshot(userDocRef, (docSnapshot) => {
+        // A escuta do documento é estabelecida após a confirmação do firebaseUser.
+        unsubscribeDoc = onSnapshot(userDocRef, (docSnapshot) => {
           if (docSnapshot.exists()) {
             const userData = { uid: firebaseUser.uid, ...docSnapshot.data() } as UserProfile;
             setUser(userData);
             
-            // Lógica de Redirecionamento Baseada no Status
+            // Lógica de Redirecionamento Baseada no Status da Assinatura
             const isPendentePage = pathname === '/pagamento-pendente';
             const isPlanosPage = pathname === '/dashboard/planos';
 
@@ -71,17 +78,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
             
           } else {
+            // Se o documento do usuário não existe no Firestore, desloga para evitar estado inconsistente.
             signOut(auth);
           }
           setLoading(false);
+        }, (error) => {
+            // Tratamento de erro para a escuta do snapshot.
+            console.error("Erro ao buscar dados do usuário:", error);
+            toast.error("Erro ao carregar os dados do perfil.");
+            signOut(auth);
+            setLoading(false);
         });
-        return () => unsubscribeDoc();
       } else {
         setUser(null);
         setLoading(false);
       }
     });
-    return () => unsubscribeAuth();
+
+    // Função de limpeza para desmontar o componente.
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeDoc) {
+        unsubscribeDoc();
+      }
+    };
   }, [router, pathname]);
 
   const login = (email: string, password: string): Promise<any> => {
