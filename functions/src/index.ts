@@ -40,8 +40,8 @@ export const createStripeCheckoutSession = functions.https.onCall(
       throw new functions.https.HttpsError("invalid-argument", "Dados essenciais para o checkout estão faltando.");
     }
 
-    const successUrl = `${siteUrl}/dashboard?payment_success=true`;
-    const cancelUrl = `${siteUrl}/cadastro`;
+      const successUrl = `${siteUrl}/conta-criada`;
+      const cancelUrl = `${siteUrl}/cadastro`;
 
     try {
       const session = await stripeClient.checkout.sessions.create({
