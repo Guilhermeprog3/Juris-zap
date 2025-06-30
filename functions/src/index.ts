@@ -2,7 +2,6 @@ import * as functions from "firebase-functions/v2";
 import * as admin from "firebase-admin";
 import Stripe from "stripe";
 
-// Inicialize o Firebase Admin SDK
 admin.initializeApp();
 const db = admin.firestore();
 const auth = admin.auth();
@@ -10,7 +9,7 @@ const auth = admin.auth();
 const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET");
 
-const siteUrl = process.env.SITE_URL || "http://localhost:3000"; 
+const siteUrl = "https://juris-zap.vercel.app"; 
 
 interface CreateCheckoutData {
   priceId: string;
@@ -23,11 +22,9 @@ interface TopUpData {
   amount: number;
 }
 
-// --- FUNÇÃO CORRIGIDA PARA V2 ---
 export const createStripeCheckoutSession = functions.https.onCall(
   { secrets: [stripeSecret] },
   async (request) => {
-    // --- CORREÇÃO: Cliente Stripe inicializado diretamente ---
     const stripeClient = new Stripe(stripeSecret.value(), {
         apiVersion: "2024-04-10" as any,
         typescript: true,
@@ -63,11 +60,9 @@ export const createStripeCheckoutSession = functions.https.onCall(
   }
 );
 
-// --- WEBHOOK CORRIGIDO PARA V2 ---
 export const stripeWebhook = functions.https.onRequest(
   { secrets: [stripeSecret, stripeWebhookSecret] },
   async (req, res) => {
-    // --- CORREÇÃO: Cliente Stripe inicializado diretamente ---
     const stripeClient = new Stripe(stripeSecret.value(), {
         apiVersion: "2024-04-10" as any,
         typescript: true,
@@ -106,15 +101,14 @@ export const stripeWebhook = functions.https.onRequest(
             functions.logger.error(`Não foi possível encontrar o planoId para a assinatura: ${stripeSubscriptionId}`);
             break;
           }
-          
-          // --- ADIÇÃO: Formata o número de telefone para o padrão E.164 ---
+
           const formattedPhoneNumber = `+55${telefone.replace(/\D/g, '')}`;
 
           const userRecord = await admin.auth().createUser({ 
             email, 
             emailVerified: true, 
             displayName: nome, 
-            phoneNumber: formattedPhoneNumber // Usa o número formatado
+            phoneNumber: formattedPhoneNumber
           });
           
           await db.collection("users").doc(userRecord.uid).set({
@@ -132,7 +126,6 @@ export const stripeWebhook = functions.https.onRequest(
         }
         break;
       }
-      // --- ADIÇÃO: Webhooks para gerenciar o ciclo de vida da assinatura ---
       case "invoice.payment_succeeded": {
         if (dataObject.billing_reason === "subscription_cycle" && dataObject.customer && dataObject.subscription) {
           try {
@@ -183,9 +176,7 @@ export const createCustomerPortalSession = functions.https.onCall(
     if (!request.auth) {
       throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
     }
-    
-    // --- CORREÇÃO: Cliente Stripe inicializado diretamente ---
-    const stripeClient = new Stripe(stripeSecret.value(), {
+        const stripeClient = new Stripe(stripeSecret.value(), {
         apiVersion: "2024-04-10" as any,
         typescript: true,
     });
@@ -219,7 +210,6 @@ export const createTopUpSession = functions.https.onCall(
           throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
       }
 
-      // --- CORREÇÃO: Cliente Stripe inicializado diretamente ---
       const stripeClient = new Stripe(stripeSecret.value(), {
           apiVersion: "2024-04-10" as any,
           typescript: true,
@@ -228,7 +218,7 @@ export const createTopUpSession = functions.https.onCall(
       const uid = request.auth.uid;
       const { amount } = request.data as TopUpData;
 
-      if (typeof amount !== 'number' || amount < 500) { // R$ 5,00
+      if (typeof amount !== 'number' || amount < 500) {
           throw new functions.https.HttpsError("invalid-argument", "O valor mínimo para recarga é de R$ 5,00.");
       }
 
@@ -290,9 +280,8 @@ export const checkUserExists = functions.https.onCall(async (data) => {
     }
 
     if (telefone) {
-      // O Firebase Auth armazena números de telefone no formato E.164.
-      // Certifique-se de formatar o telefone recebido para este padrão.
-      const formattedPhoneNumber = `+55${telefone.replace(/\D/g, '')}`; // Exemplo para o Brasil
+
+      const formattedPhoneNumber = `+55${telefone.replace(/\D/g, '')}`;
       try {
         await auth.getUserByPhoneNumber(formattedPhoneNumber);
         phoneExists = true;
