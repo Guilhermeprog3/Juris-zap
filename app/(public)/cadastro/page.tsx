@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CheckCircle, Bot, Loader2, AlertTriangle } from "lucide-react"
 import { cadastroSemSenhaSchema, type CadastroSemSenhaFormData } from "@/lib/validations" 
@@ -46,7 +45,7 @@ export default function CadastroPage() {
     formState: { errors },
   } = useForm<CadastroSemSenhaFormData>({
     resolver: zodResolver(cadastroSemSenhaSchema),
-    defaultValues: { plano: planoValido, aceitaTermos: false },
+    defaultValues: { plano: planoValido },
   })
 
   useEffect(() => {
@@ -174,13 +173,6 @@ export default function CadastroPage() {
                         {Object.entries(planosDisponiveis).map(([value, label]) => ( <SelectItem key={value} value={value}>{label}</SelectItem> ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div className="flex items-start space-x-3 pt-2">
-                    <Controller name="aceitaTermos" control={control} render={({ field }) => ( <Checkbox id="termos" checked={field.value} onCheckedChange={field.onChange} /> )} />
-                    <div className="grid gap-1.5 leading-none">
-                      <Label htmlFor="termos" className="text-sm font-normal">Eu li e aceito os <Link href="/termos" className="text-green-600 hover:underline">Termos de Uso</Link> e a <Link href="/privacidade" className="text-green-600 hover:underline">Política de Privacidade</Link>.</Label>
-                      {errors.aceitaTermos && <p className="text-sm text-red-500">{errors.aceitaTermos.message}</p>}
-                    </div>
                   </div>
                   <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 font-semibold text-base" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

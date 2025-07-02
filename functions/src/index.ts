@@ -41,7 +41,7 @@ export const createStripeCheckoutSession = functions.https.onCall(
 
     try {
       const session = await stripeClient.checkout.sessions.create({
-        payment_method_types: ["card"],
+        payment_method_types: ["card","pix"],
         mode: "subscription",
         line_items: [{ price: priceId, quantity: 1 }],
         customer_email: email,

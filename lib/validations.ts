@@ -43,9 +43,6 @@ export const cadastroSemSenhaSchema = z.object({
   email: z.string().email("E-mail inválido."),
   telefone: z.string().min(14, "O número de telefone parece inválido."),
   plano: z.string().min(1, "Você deve selecionar um plano."),
-  aceitaTermos: z.boolean().refine((val) => val === true, {
-    message: "Você deve aceitar os termos de uso para continuar.",
-  }),
 });
 
 export type CadastroFormData = z.infer<typeof cadastroSchema>;
