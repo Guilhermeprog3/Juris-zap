@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { useForm, Controller } from "react-hook-form" 
+import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
@@ -11,9 +11,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CheckCircle, Bot, Loader2, AlertTriangle } from "lucide-react"
-import { cadastroSemSenhaSchema, type CadastroSemSenhaFormData } from "@/lib/validations" 
+import { cadastroSemSenhaSchema, type CadastroSemSenhaFormData } from "@/lib/validations"
 import { httpsCallable } from "firebase/functions"
-import { functions } from "@/lib/firebase" 
+import { functions } from "@/lib/firebase"
 import { loadStripe } from '@stripe/stripe-js'
 import { toast } from "sonner"
 
@@ -41,7 +41,7 @@ export default function CadastroPage() {
     handleSubmit,
     setValue,
     watch,
-    control, 
+    control,
     formState: { errors },
   } = useForm<CadastroSemSenhaFormData>({
     resolver: zodResolver(cadastroSemSenhaSchema),
@@ -62,9 +62,21 @@ export default function CadastroPage() {
     setIsLoading(true);
 
     try {
-        const checkUser = httpsCallable(functions, 'checkUserExists');
-        const userCheckResult = await checkUser({ email: data.email, telefone: data.telefone });
-        const resultData = userCheckResult.data as { exists: boolean, message?: string };
+        const functionUrl = "https://checkuserexists-h7o5d2u2oq-uc.a.run.app";
+
+        const response = await fetch(functionUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: data.email, telefone: data.telefone }),
+        });
+
+        const resultData = await response.json();
+
+        if (!response.ok) {
+            throw new Error(resultData.error?.message || 'Erro ao verificar os seus dados.');
+        }
 
         if (resultData.exists) {
             toast.error(resultData.message || "Já existe uma conta com este e-mail ou telefone.");
@@ -72,7 +84,7 @@ export default function CadastroPage() {
             return;
         }
     } catch (error: any) {
-        toast.error(error.message || "Erro ao verificar os seus dados. Tente novamente.");
+        toast.error(error.message || "Erro de comunicação ao verificar seus dados. Tente novamente.");
         setIsLoading(false);
         return;
     }
@@ -84,20 +96,20 @@ export default function CadastroPage() {
         setIsLoading(false);
         return;
     }
-    
+
     try {
         const stripe = await stripePromise;
         if (!stripe) throw new Error("Stripe.js não foi carregado.");
 
         const createStripeCheckoutSession = httpsCallable(functions, 'createStripeCheckoutSession');
-        
-        const checkoutResponse = await createStripeCheckoutSession({ 
+
+        const checkoutResponse = await createStripeCheckoutSession({
             priceId,
             email: data.email,
             nome: data.nome,
             telefone: data.telefone,
         });
-        
+
         const { sessionId } = checkoutResponse.data as { sessionId: string };
         const { error } = await stripe.redirectToCheckout({ sessionId });
 

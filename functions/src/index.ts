@@ -1,16 +1,30 @@
 import * as functions from "firebase-functions/v2";
 import * as admin from "firebase-admin";
 import Stripe from "stripe";
+import cors from "cors"; // <-- CORREÇÃO AQUI
 
+// Inicialização do Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
 const auth = admin.auth();
 
+// Definição dos segredos
 const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET");
 
-const siteUrl = process.env.SITE_URL || "http://localhost:3000"; 
+// URL do seu site
+const siteUrl = "https://juriszap.com.br";
 
+// --- INÍCIO DA CORREÇÃO DE CORS ---
+
+// Configura o CORS para permitir requisições do seu site e do ambiente local
+const corsHandler = cors({
+  origin: ["https://juriszap.com.br", "http://localhost:3000"],
+});
+
+// --- FIM DA CORREÇÃO DE CORS ---
+
+// Interfaces para tipagem dos dados
 interface CreateCheckoutData {
   priceId: string;
   email: string;
@@ -32,6 +46,68 @@ interface UpdatePhoneNumberResult {
   message?: string;
 }
 
+// Função para verificar se o usuário já existe (CORRIGIDA COM CORS e onRequest)
+export const checkUserExists = functions.https.onRequest((req, res) => {
+    // Envolve a função com o handler do CORS
+    corsHandler(req, res, async () => {
+        // A requisição do frontend virá no corpo (body)
+        const { email, telefone } = req.body;
+
+        if (!email && !telefone) {
+            functions.logger.error("checkUserExists: Requisição sem email ou telefone.");
+            res.status(400).send({
+                error: { message: "E-mail ou telefone são obrigatórios para a verificação." }
+            });
+            return;
+        }
+
+        try {
+            let userRecord = null;
+            let emailExists = false;
+            let phoneExists = false;
+            let existenceMessage = "";
+            const formattedPhoneNumber = telefone ? `+55${telefone.replace(/\D/g, '')}` : null;
+
+            if (email) {
+                try {
+                    userRecord = await auth.getUserByEmail(email);
+                    emailExists = true;
+                } catch (error: any) {
+                    if (error.code !== 'auth/user-not-found') throw error;
+                }
+            }
+
+            if (formattedPhoneNumber) {
+                try {
+                    const phoneUserRecord = await auth.getUserByPhoneNumber(formattedPhoneNumber);
+                    if (phoneUserRecord) {
+                        phoneExists = true;
+                        if (!userRecord) userRecord = phoneUserRecord;
+                    }
+                } catch (error: any) {
+                    if (error.code !== 'auth/user-not-found') throw error;
+                }
+            }
+
+            if (emailExists && phoneExists) {
+                existenceMessage = "Já existe uma conta com este e-mail e telefone.";
+            } else if (emailExists) {
+                existenceMessage = "Já existe uma conta com este e-mail.";
+            } else if (phoneExists) {
+                existenceMessage = "Já existe uma conta com este telefone.";
+            }
+
+            // A resposta é enviada diretamente com `res.send`
+            res.status(200).send({ exists: emailExists || phoneExists, message: existenceMessage });
+
+        } catch (error) {
+            functions.logger.error("Erro inesperado na função checkUserExists:", error);
+            res.status(500).send({ error: { message: "Erro interno ao verificar os dados do usuário." } });
+        }
+    });
+});
+
+// As outras funções permanecem como `onCall` pois são chamadas de forma diferente
 export const updatePhoneNumber = functions.https.onCall(
   async (request): Promise<UpdatePhoneNumberResult> => {
     if (!request.auth) {
@@ -311,98 +387,3 @@ export const createTopUpSession = functions.https.onCall(
       }
   }
 );
-
-export const checkUserStatus = functions.https.onCall(async (data) => {
-  const { email, telefone } = data.data;
-  functions.logger.info("Dados recebidos na função checkUserStatus:", data);
-
-  if (!email && !telefone) {
-    throw new functions.https.HttpsError("invalid-argument", "E-mail ou telefone são obrigatórios para a verificação.");
-  }
-
-  try {
-    let userRecord = null;
-    let emailExists = false;
-    let phoneExists = false;
-    let existenceMessage = "";
-    const formattedPhoneNumber = telefone ? `+559${telefone.replace(/\D/g, '')}` : null;
-
-    if (email) {
-      functions.logger.info(`checkUserStatus: Tentando buscar por e-mail: ${email}`);
-      try {
-        userRecord = await auth.getUserByEmail(email);
-        emailExists = true;
-      } catch (error: any) {
-        if (error.code !== 'auth/user-not-found') {
-          functions.logger.error("Erro ao verificar email no Firebase Auth:", error);
-          throw new functions.https.HttpsError("internal", "Erro ao verificar o email.");
-        }
-      }
-    }
-
-    if (!userRecord && formattedPhoneNumber) { 
-      functions.logger.info(`checkUserStatus: Tentando buscar por telefone 11111(como provedor): ${formattedPhoneNumber}`);
-      try {
-        userRecord = await auth.getUserByPhoneNumber(formattedPhoneNumber);
-        phoneExists = true;
-      } catch (error: any) {
-        if (error.code !== 'auth/user-not-found') {
-          functions.logger.error("Erro ao verificar telefone (provedor) no Firebase Auth:", error);
-          throw new functions.https.HttpsError("internal", "Erro ao verificar o telefone.");
-        }
-      }
-    } else if (userRecord && formattedPhoneNumber) { 
-        functions.logger.info(`checkUserStatus: Verificando se o telefone ${formattedPhoneNumber} corresponde ao userRecord existente.`);
-        if (userRecord.phoneNumber === formattedPhoneNumber) {
-            phoneExists = true;
-        }
-    }
-
-
-    if (emailExists && phoneExists) {
-        existenceMessage = "Já existe uma conta com este e-mail e telefone.";
-    } else if (emailExists) {
-        existenceMessage = "Já existe uma conta com este e-mail.";
-    } else if (phoneExists) {
-        existenceMessage = "Já existe uma conta com este telefone.";
-    }
-
-    if (!userRecord) {
-        functions.logger.info("checkUserStatus: Usuário não encontrado no Firebase Auth.");
-        return { exists: false, canUseAI: false, plano: null, message: "Usuário não encontrado." };
-    }
-
-    functions.logger.info(`checkUserStatus: Usuário encontrado no Auth (${userRecord.uid}). Buscando no Firestore.`);
-    const userDoc = await db.collection("users").doc(userRecord.uid).get();
-
-    if (!userDoc.exists) {
-        functions.logger.info(`checkUserStatus: Documento do usuário ${userRecord.uid} não encontrado no Firestore.`);
-        return { exists: true, canUseAI: false, plano: null, message: "Dados de assinatura do usuário não encontrados." };
-    }
-
-    const userData = userDoc.data();
-    const statusAssinatura = userData?.statusAssinatura;
-    const planoId = userData?.planoId;
-
-    if (statusAssinatura === 'pagamento_atrasado' || statusAssinatura === 'inativo') {
-        functions.logger.info(`checkUserStatus: Assinatura do usuário ${userRecord.uid} está ${statusAssinatura}.`);
-        return {
-            exists: true,
-            canUseAI: false,
-            plano: planoId,
-            message: "Acesso bloqueado. Assinatura pendente ou inativa."
-        };
-    }
-
-    functions.logger.info(`checkUserStatus: Usuário ${userRecord.uid} ativo. Acesso liberado.`);
-    return {
-        exists: true,
-        canUseAI: true,
-        plano: planoId,
-        message: existenceMessage || "Usuário verificado com sucesso."
-    };
-  } catch (error) {
-    functions.logger.error("Erro inesperado na função checkUserStatus:", error);
-    throw new functions.https.HttpsError("internal", "Erro interno ao verificar os dados do usuário.");
-  }
-});
