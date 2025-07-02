@@ -52,7 +52,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let unsubscribeDoc: (() => void) | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
-      // Limpa a escuta anterior ao reavaliar o usuário, evitando memory leaks.
       if (unsubscribeDoc) {
         unsubscribeDoc();
       }
@@ -60,13 +59,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         
-        // A escuta do documento é estabelecida após a confirmação do firebaseUser.
         unsubscribeDoc = onSnapshot(userDocRef, (docSnapshot) => {
           if (docSnapshot.exists()) {
             const userData = { uid: firebaseUser.uid, ...docSnapshot.data() } as UserProfile;
             setUser(userData);
             
-            // Lógica de Redirecionamento Baseada no Status da Assinatura
+            const isLoginPage = pathname === '/login';
+
+            if (isLoginPage) {
+              if (userData.role === 'admin') {
+                router.push('/admin');
+              } else {
+                router.push('/dashboard');
+              }
+            }
+
             const isPendentePage = pathname === '/pagamento-pendente';
             const isPlanosPage = pathname === '/dashboard/planos';
 
@@ -78,12 +85,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
             
           } else {
-            // Se o documento do usuário não existe no Firestore, desloga para evitar estado inconsistente.
             signOut(auth);
           }
           setLoading(false);
         }, (error) => {
-            // Tratamento de erro para a escuta do snapshot.
             console.error("Erro ao buscar dados do usuário:", error);
             toast.error("Erro ao carregar os dados do perfil.");
             signOut(auth);
@@ -95,7 +100,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
-    // Função de limpeza para desmontar o componente.
     return () => {
       unsubscribeAuth();
       if (unsubscribeDoc) {

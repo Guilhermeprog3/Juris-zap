@@ -9,7 +9,7 @@ const auth = admin.auth();
 const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET");
 
-const siteUrl = "https://juris-zap.vercel.app"; 
+const siteUrl = process.env.SITE_URL || "http://localhost:3000"; 
 
 interface CreateCheckoutData {
   priceId: string;

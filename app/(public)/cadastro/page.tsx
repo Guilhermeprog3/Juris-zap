@@ -19,9 +19,9 @@ import { loadStripe } from '@stripe/stripe-js'
 import { toast } from "sonner"
 
 const planosStripe = {
-  basico: "price_1RebU2QS7d5OCs0jbiATUpmz",
-  essencial_mensal: "price_1RebTQQS7d5OCs0jiP8TOGan",
-  aprova_mensal: "price_1RebUhQS7d5OCs0j70ePwyX2",
+  basico: "price_1RgCq1Kr3wtpRgdkCLC4Y7tk",
+  essencial_mensal: "price_1RgChRKr3wtpRgdkn0YDJ7b1",
+  aprova_mensal: "price_1RgBxqKr3wtpRgdko5aJtiis",
 };
 const planosDisponiveis = {
   basico: "Básico - R$ 19,90/mês",
@@ -62,7 +62,6 @@ export default function CadastroPage() {
   const onSubmit = async (data: CadastroSemSenhaFormData) => {
     setIsLoading(true);
 
-    // --- ADIÇÃO: Verifica se o utilizador já existe antes de prosseguir ---
     try {
         const checkUser = httpsCallable(functions, 'checkUserExists');
         const userCheckResult = await checkUser({ email: data.email, telefone: data.telefone });
@@ -71,14 +70,13 @@ export default function CadastroPage() {
         if (resultData.exists) {
             toast.error(resultData.message || "Já existe uma conta com este e-mail ou telefone.");
             setIsLoading(false);
-            return; // Interrompe a execução se o utilizador já existir
+            return;
         }
     } catch (error: any) {
         toast.error(error.message || "Erro ao verificar os seus dados. Tente novamente.");
         setIsLoading(false);
         return;
     }
-    // --- FIM DA VERIFICAÇÃO ---
 
     const priceId = planosStripe[data.plano as keyof typeof planosStripe];
 
@@ -131,7 +129,6 @@ export default function CadastroPage() {
               <li className="flex items-center text-gray-700"><CheckCircle className="h-6 w-6 text-green-600 mr-3 flex-shrink-0" />Auxílio inteligente na resolução de exercícios.</li>
               <li className="flex items-center text-gray-700"><CheckCircle className="h-6 w-6 text-green-600 mr-3 flex-shrink-0" />Integração total com o WhatsApp.</li>
             </ul>
-            {/* --- ADIÇÃO: Aviso sobre o email --- */}
             <div className="mt-8 p-4 bg-amber-100/60 border-l-4 border-amber-500 text-amber-900 rounded-r-lg">
                 <div className="flex">
                     <div className="py-1">

@@ -139,18 +139,6 @@ export default function PlanosPage() {
               </Card>
             ))}
           </div>
-
-          <div className="mt-20 text-center bg-white/80 backdrop-blur-sm p-8 rounded-xl shadow-sm max-w-4xl mx-auto border border-gray-200">
-            <div className="flex justify-center mb-4">
-              <div className="bg-emerald-100 p-3 rounded-full">
-                <ShieldCheck className="h-8 w-8 text-emerald-600" />
-              </div>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Garantia de Satisfação</h3>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Experimente qualquer plano pago por 7 dias. Se não ficar satisfeito, devolvemos 100% do seu dinheiro, sem perguntas.
-            </p>
-          </div>
         </div>
       </section>
       <Footer />

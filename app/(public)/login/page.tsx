@@ -36,7 +36,6 @@ export default function LoginPage() {
     try {
       await login(data.email, data.senha);
       toast.success("Login realizado com sucesso! Redirecionando...");
-      router.push("/dashboard"); 
     } catch (error: any) {
       toast.error("E-mail ou senha incorretos. Por favor, tente novamente.");
     } finally {

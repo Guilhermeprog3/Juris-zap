@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// Validação para cadastro (com senha, caso use no futuro)
 export const cadastroSchema = z
   .object({
     nome: z
@@ -21,7 +20,6 @@ export const cadastroSchema = z
         "A senha precisa de uma letra minúscula, uma maiúscula e um número",
       ),
     confirmarSenha: z.string().min(1, "A confirmação de senha é obrigatória"),
-    // Enum corrigido para refletir apenas os planos existentes
     plano: z.enum(["basico", "essencial_mensal", "aprova_mensal"], {
       errorMap: () => ({ message: "Por favor, selecione um plano." })
     }),
@@ -34,14 +32,12 @@ export const cadastroSchema = z
     path: ["confirmarSenha"],
   });
 
-// Validação para login (sem alterações)
 export const loginSchema = z.object({
   email: z.string().email("Email inválido").min(1, "Email é obrigatório"),
   senha: z.string().min(1, "Senha é obrigatória"),
   lembrarMe: z.boolean().optional(),
 });
 
-// Validação para o fluxo de cadastro atual (sem senha)
 export const cadastroSemSenhaSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   email: z.string().email("E-mail inválido."),

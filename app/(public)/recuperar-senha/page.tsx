@@ -16,13 +16,11 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Loader2, KeyRound, Mail, CheckCircle, Send } from "lucide-react"
 
-// Esquema de validação para o formulário de envio de email
 const emailSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um email válido." }),
 });
 type EmailFormData = z.infer<typeof emailSchema>;
 
-// Esquema de validação para o formulário de redefinição de senha
 const passwordSchema = z.object({
   password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres."),
   confirmPassword: z.string(),
@@ -36,7 +34,7 @@ export default function RecuperarSenhaPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1: Enviar email, 2: Email enviado, 3: Redefinir senha, 4: Sucesso
+  const [step, setStep] = useState(1);
   const [oobCode, setOobCode] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState("");
 
