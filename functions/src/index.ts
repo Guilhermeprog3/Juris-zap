@@ -47,7 +47,7 @@ interface UpdatePhoneNumberResult {
 }
 
 // Função para verificar se o usuário já existe (CORRIGIDA COM CORS e onRequest)
-export const checkUserExists = functions.https.onRequest((req, res) => {
+export const 	checkUserStatus = functions.https.onRequest((req, res) => {
     // Envolve a função com o handler do CORS
     corsHandler(req, res, async () => {
         // A requisição do frontend virá no corpo (body)
@@ -171,7 +171,7 @@ export const createStripeCheckoutSession = functions.https.onCall(
 
     try {
       const session = await stripeClient.checkout.sessions.create({
-        payment_method_types: ["card","pix"],
+        payment_method_types: ["card"],
         mode: "subscription",
         line_items: [{ price: priceId, quantity: 1 }],
         customer_email: email,

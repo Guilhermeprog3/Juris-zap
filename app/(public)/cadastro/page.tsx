@@ -62,7 +62,7 @@ export default function CadastroPage() {
     setIsLoading(true);
 
     try {
-        const functionUrl = "https://checkuserexists-h7o5d2u2oq-uc.a.run.app";
+        const functionUrl = "https://checkuserstatus-q6s4qc63ta-uc.a.run.app";
 
         const response = await fetch(functionUrl, {
             method: 'POST',
