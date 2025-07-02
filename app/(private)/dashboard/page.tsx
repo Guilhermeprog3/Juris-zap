@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input"
 import { CheckCircle, AlertCircle, MessageSquare, DollarSign, Zap, Phone, Edit, X, Loader2, AlertTriangle } from "lucide-react"
 import { NavbarAdm } from "@/components/navbar_adm"
 import { useAuth, AuthLoader } from "@/app/context/authcontext"
-import { auth, db } from "@/lib/firebase"
+import { auth, db, functions } from "@/lib/firebase" 
 import { doc, updateDoc, collection, query, getDocs, orderBy, limit } from "firebase/firestore"
+import { httpsCallable } from "firebase/functions" 
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
 
@@ -21,13 +22,20 @@ type Payment = {
   status: string;
 }
 
-interface Plan { // Define the Plan interface
+interface Plan { 
   id: string;
   nome: string;
-  // Add other properties if needed, e.g., price, description
 }
 
-// Helper function to format phone number to (XX) XXXXX-XXXX
+// ** Adicione esta interface para o tipo de retorno da Cloud Function **
+interface UpdatePhoneNumberCallableResult {
+  data: {
+    success: boolean;
+    message?: string;
+  };
+}
+
+
 const formatPhoneNumber = (phoneNumber: string) => {
   const cleaned = ('' + phoneNumber).replace(/\D/g, '');
   const match = cleaned.match(/^(\d{2})(\d{5})(\d{4})$/);
@@ -37,7 +45,6 @@ const formatPhoneNumber = (phoneNumber: string) => {
   return phoneNumber;
 };
 
-// Helper function to unformat phone number to +55DDNNNNNNAAA for storage
 const unformatPhoneNumber = (formattedPhoneNumber: string) => {
   const cleaned = ('' + formattedPhoneNumber).replace(/\D/g, '');
   if (cleaned.length === 11) {
@@ -57,7 +64,7 @@ export default function DashboardPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<Payment[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
-  const [availablePlans, setAvailablePlans] = useState<Plan[]>([]); // New state for available plans
+  const [availablePlans, setAvailablePlans] = useState<Plan[]>([]); 
 
   useEffect(() => {
     if (user) {
@@ -68,7 +75,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      // Fetch payment history
       if (user) {
         setLoadingHistory(true);
         try {
@@ -90,13 +96,12 @@ export default function DashboardPage() {
         }
       }
 
-      // Fetch available plans
       try {
         const plansCollectionRef = collection(db, "planos");
         const plansSnapshot = await getDocs(plansCollectionRef);
         const plansList = plansSnapshot.docs.map(doc => ({
           id: doc.id,
-          nome: doc.data().nome // Assuming 'nome' field exists in your 'planos' collection
+          nome: doc.data().nome 
         })) as Plan[];
         setAvailablePlans(plansList);
       } catch (error) {
@@ -106,7 +111,7 @@ export default function DashboardPage() {
     };
 
     fetchInitialData();
-  }, [user]); // Re-run when user changes
+  }, [user]); 
 
   const handleSavePhoneNumber = async () => {
     if (!newPhoneNumber.trim()) {
@@ -117,15 +122,29 @@ export default function DashboardPage() {
 
     setIsUpdating(true);
     try {
-      const userDocRef = doc(db, "users", user.uid);
-      const formattedForStorage = unformatPhoneNumber(newPhoneNumber);
-      await updateDoc(userDocRef, { telefone: formattedForStorage });
-      setUserPhoneNumber(formatPhoneNumber(formattedForStorage));
-      toast.success("Número de telefone atualizado!");
-      setIsModalOpen(false);
-    } catch (error) {
-      toast.error("Não foi possível atualizar o número.");
-      console.error(error);
+      // ** Usa o tipo explícito para o retorno da chamada da função **
+      const updatePhoneNumberCallable = httpsCallable<
+        { uid: string; newPhoneNumber: string }, 
+        UpdatePhoneNumberCallableResult['data'] // Especifica o tipo esperado para result.data
+      >(functions, 'updatePhoneNumber');
+
+      const result = await updatePhoneNumberCallable({ 
+        uid: user.uid, 
+        newPhoneNumber: newPhoneNumber 
+      });
+
+      // Agora, TypeScript sabe que result.data tem 'success' e 'message'
+      if (result.data.success) { 
+        setUserPhoneNumber(formatPhoneNumber(newPhoneNumber)); 
+        toast.success(result.data.message || "Número de telefone atualizado!"); // Adicionado fallback para a mensagem
+        setIsModalOpen(false);
+      } else {
+        toast.error(result.data.message || "Não foi possível atualizar o número.");
+      }
+
+    } catch (error: any) {
+      toast.error(error.message || "Não foi possível atualizar o número. Verifique o console para mais detalhes.");
+      console.error("Erro ao chamar updatePhoneNumber:", error);
     } finally {
       setIsUpdating(false);
     }
@@ -133,9 +152,9 @@ export default function DashboardPage() {
 
   const calculateDaysRemaining = (paymentDate: Date | null) => {
     if (!paymentDate) return 0;
-    const nextPayment = new Date(paymentDate);
+    const nextPayment = new Date(paymentDate); 
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0); 
     const diffTime = nextPayment.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
@@ -179,7 +198,6 @@ export default function DashboardPage() {
   const isPaymentOverdue = daysUntilNextPayment < 0;
   const isServiceActive = !isPaymentOverdue;
 
-  // Find the current plan name
   const currentPlanName = availablePlans.find(plan => plan.id === user.planoId)?.nome || user.planoId || 'N/A';
 
   const numeroIaWhatsapp = "11 5286-5386";

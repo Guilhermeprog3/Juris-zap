@@ -22,6 +22,60 @@ interface TopUpData {
   amount: number;
 }
 
+interface UpdatePhoneNumberData {
+  uid: string;
+  newPhoneNumber: string;
+}
+
+interface UpdatePhoneNumberResult {
+  success: boolean;
+  message?: string;
+}
+
+export const updatePhoneNumber = functions.https.onCall(
+  async (request): Promise<UpdatePhoneNumberResult> => {
+    if (!request.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+    }
+
+    const { uid, newPhoneNumber } = request.data as UpdatePhoneNumberData;
+
+    if (request.auth.uid !== uid) {
+      throw new functions.https.HttpsError("permission-denied", "Você não tem permissão para alterar o telefone de outro usuário.");
+    }
+
+    if (!uid || !newPhoneNumber) {
+      throw new functions.https.HttpsError("invalid-argument", "UID do usuário e novo número de telefone são obrigatórios.");
+    }
+    const formattedNewPhoneNumber = `+55${newPhoneNumber.replace(/\D/g, '')}`;
+
+    try {
+      await auth.updateUser(uid, {
+        phoneNumber: formattedNewPhoneNumber,
+      });
+      functions.logger.info(`Telefone atualizado no Auth para UID: ${uid} para ${formattedNewPhoneNumber}`);
+
+      const userDocRef = db.collection("users").doc(uid);
+      await userDocRef.update({
+        telefone: formattedNewPhoneNumber,
+      });
+      functions.logger.info(`Telefone atualizado no Firestore para UID: ${uid}`);
+
+      return { success: true, message: "Número de telefone atualizado com sucesso." };
+
+    } catch (error: any) {
+      functions.logger.error("Erro ao atualizar o número de telefone:", error);
+      if (error.code === 'auth/invalid-phone-number') {
+        throw new functions.https.HttpsError("invalid-argument", "O número de telefone fornecido é inválido.");
+      }
+      if (error.code === 'auth/phone-number-already-exists') {
+        throw new functions.https.HttpsError("already-exists", "O número de telefone já está em uso por outra conta.");
+      }
+      throw new functions.https.HttpsError("internal", "Não foi possível atualizar o número de telefone. Tente novamente mais tarde.");
+    }
+  }
+);
+
 export const createStripeCheckoutSession = functions.https.onCall(
   { secrets: [stripeSecret] },
   async (request) => {
@@ -36,8 +90,8 @@ export const createStripeCheckoutSession = functions.https.onCall(
       throw new functions.https.HttpsError("invalid-argument", "Dados essenciais para o checkout estão faltando.");
     }
 
-      const successUrl = `${siteUrl}/conta-criada`;
-      const cancelUrl = `${siteUrl}/cadastro`;
+    const successUrl = `${siteUrl}/conta-criada`;
+    const cancelUrl = `${siteUrl}/cadastro`;
 
     try {
       const session = await stripeClient.checkout.sessions.create({
@@ -106,7 +160,7 @@ export const stripeWebhook = functions.https.onRequest(
 
           const userRecord = await admin.auth().createUser({ 
             email, 
-            emailVerified: true, 
+            emailVerified: true,
             displayName: nome, 
             phoneNumber: formattedPhoneNumber
           });
@@ -126,6 +180,7 @@ export const stripeWebhook = functions.https.onRequest(
         }
         break;
       }
+
       case "invoice.payment_succeeded": {
         if (dataObject.billing_reason === "subscription_cycle" && dataObject.customer && dataObject.subscription) {
           try {
@@ -147,6 +202,7 @@ export const stripeWebhook = functions.https.onRequest(
         }
         break;
       }
+
       case "invoice.payment_failed":
       case "customer.subscription.deleted": {
         const customerId = dataObject.customer;
@@ -176,7 +232,7 @@ export const createCustomerPortalSession = functions.https.onCall(
     if (!request.auth) {
       throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
     }
-        const stripeClient = new Stripe(stripeSecret.value(), {
+    const stripeClient = new Stripe(stripeSecret.value(), {
         apiVersion: "2024-04-10" as any,
         typescript: true,
     });
@@ -218,7 +274,7 @@ export const createTopUpSession = functions.https.onCall(
       const uid = request.auth.uid;
       const { amount } = request.data as TopUpData;
 
-      if (typeof amount !== 'number' || amount < 500) {
+      if (typeof amount !== 'number' || amount < 500) { 
           throw new functions.https.HttpsError("invalid-argument", "O valor mínimo para recarga é de R$ 5,00.");
       }
 
@@ -256,20 +312,25 @@ export const createTopUpSession = functions.https.onCall(
   }
 );
 
-export const checkUserExists = functions.https.onCall(async (data) => {
+export const checkUserStatus = functions.https.onCall(async (data) => {
   const { email, telefone } = data.data;
+  functions.logger.info("Dados recebidos na função checkUserStatus:", data);
 
   if (!email && !telefone) {
     throw new functions.https.HttpsError("invalid-argument", "E-mail ou telefone são obrigatórios para a verificação.");
   }
 
   try {
+    let userRecord = null;
     let emailExists = false;
     let phoneExists = false;
+    let existenceMessage = "";
+    const formattedPhoneNumber = telefone ? `+559${telefone.replace(/\D/g, '')}` : null;
 
     if (email) {
+      functions.logger.info(`checkUserStatus: Tentando buscar por e-mail: ${email}`);
       try {
-        await auth.getUserByEmail(email);
+        userRecord = await auth.getUserByEmail(email);
         emailExists = true;
       } catch (error: any) {
         if (error.code !== 'auth/user-not-found') {
@@ -279,31 +340,69 @@ export const checkUserExists = functions.https.onCall(async (data) => {
       }
     }
 
-    if (telefone) {
-
-      const formattedPhoneNumber = `+55${telefone.replace(/\D/g, '')}`;
+    if (!userRecord && formattedPhoneNumber) { 
+      functions.logger.info(`checkUserStatus: Tentando buscar por telefone 11111(como provedor): ${formattedPhoneNumber}`);
       try {
-        await auth.getUserByPhoneNumber(formattedPhoneNumber);
+        userRecord = await auth.getUserByPhoneNumber(formattedPhoneNumber);
         phoneExists = true;
       } catch (error: any) {
         if (error.code !== 'auth/user-not-found') {
-          functions.logger.error("Erro ao verificar telefone no Firebase Auth:", error);
+          functions.logger.error("Erro ao verificar telefone (provedor) no Firebase Auth:", error);
           throw new functions.https.HttpsError("internal", "Erro ao verificar o telefone.");
         }
       }
+    } else if (userRecord && formattedPhoneNumber) { 
+        functions.logger.info(`checkUserStatus: Verificando se o telefone ${formattedPhoneNumber} corresponde ao userRecord existente.`);
+        if (userRecord.phoneNumber === formattedPhoneNumber) {
+            phoneExists = true;
+        }
     }
 
+
     if (emailExists && phoneExists) {
-      return { exists: true, message: "Já existe uma conta com este e-mail e telefone." };
+        existenceMessage = "Já existe uma conta com este e-mail e telefone.";
     } else if (emailExists) {
-      return { exists: true, message: "Já existe uma conta com este e-mail." };
+        existenceMessage = "Já existe uma conta com este e-mail.";
     } else if (phoneExists) {
-      return { exists: true, message: "Já existe uma conta com este telefone." };
-    } else {
-      return { exists: false };
+        existenceMessage = "Já existe uma conta com este telefone.";
     }
+
+    if (!userRecord) {
+        functions.logger.info("checkUserStatus: Usuário não encontrado no Firebase Auth.");
+        return { exists: false, canUseAI: false, plano: null, message: "Usuário não encontrado." };
+    }
+
+    functions.logger.info(`checkUserStatus: Usuário encontrado no Auth (${userRecord.uid}). Buscando no Firestore.`);
+    const userDoc = await db.collection("users").doc(userRecord.uid).get();
+
+    if (!userDoc.exists) {
+        functions.logger.info(`checkUserStatus: Documento do usuário ${userRecord.uid} não encontrado no Firestore.`);
+        return { exists: true, canUseAI: false, plano: null, message: "Dados de assinatura do usuário não encontrados." };
+    }
+
+    const userData = userDoc.data();
+    const statusAssinatura = userData?.statusAssinatura;
+    const planoId = userData?.planoId;
+
+    if (statusAssinatura === 'pagamento_atrasado' || statusAssinatura === 'inativo') {
+        functions.logger.info(`checkUserStatus: Assinatura do usuário ${userRecord.uid} está ${statusAssinatura}.`);
+        return {
+            exists: true,
+            canUseAI: false,
+            plano: planoId,
+            message: "Acesso bloqueado. Assinatura pendente ou inativa."
+        };
+    }
+
+    functions.logger.info(`checkUserStatus: Usuário ${userRecord.uid} ativo. Acesso liberado.`);
+    return {
+        exists: true,
+        canUseAI: true,
+        plano: planoId,
+        message: existenceMessage || "Usuário verificado com sucesso."
+    };
   } catch (error) {
-    functions.logger.error("Erro inesperado na função checkUserExists:", error);
-    throw new functions.https.HttpsError("internal", "Erro interno ao verificar os dados.");
+    functions.logger.error("Erro inesperado na função checkUserStatus:", error);
+    throw new functions.https.HttpsError("internal", "Erro interno ao verificar os dados do usuário.");
   }
 });

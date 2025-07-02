@@ -200,7 +200,7 @@ export default function HomePage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-lg px-8 text-white border-white hover:bg-white/10 hover:text-white"
+                className="text-lg px-8 text-emerald-700 border-white hover:bg-white/10 hover:text-white"
               >
                 Ver Planos
               </Button>
