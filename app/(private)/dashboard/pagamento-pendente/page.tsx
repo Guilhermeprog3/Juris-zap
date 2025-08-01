@@ -17,10 +17,9 @@ export default function PagamentoPendentePage() {
   const router = useRouter();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Redireciona se o usuário não estiver com pagamento pendente
   if (user && user.statusAssinatura !== 'pagamento_atrasado') {
     router.replace('/dashboard');
-    return null; // Renderiza nada enquanto redireciona
+    return null; 
   }
 
   const handleManageSubscription = async () => {
