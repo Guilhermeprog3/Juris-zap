@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,9 +8,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { 
-  Users, UserX, Search, MoreHorizontal, Settings, ChevronDown, Clock, Loader2, Phone
+  Users, UserX, Search, MoreHorizontal, Settings, ChevronDown, Clock, Loader2, UserCheck, Send
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -24,8 +32,9 @@ import {
 } from "@tanstack/react-table"
 import { NavbarAdm } from "@/components/navbar_adm"
 import { useRequireAuth, AuthLoader } from "@/app/context/authcontext"
-import { db } from "@/lib/firebase"
-import { collection, getDocs, query, doc, updateDoc, Timestamp } from "firebase/firestore"
+import { db, functions } from "@/lib/firebase"
+import { httpsCallable } from "firebase/functions"
+import { collection, getDocs, query, Timestamp } from "firebase/firestore"
 import { toast } from "sonner"
 
 type StatusAssinatura = "ativo" | "inativo" | "pagamento_atrasado";
@@ -39,6 +48,7 @@ type Usuario = {
   status: StatusAssinatura;
   cadastro: string;
   pagamentoAtrasado?: boolean;
+  authDisabled: boolean;
 }
 
 type Plan = {
@@ -58,39 +68,9 @@ type UserDocument = {
     role: string;
 }
 
-// Definição das colunas da tabela
-const columns: ColumnDef<Usuario>[] = [
-    {
-      accessorKey: "nome",
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-            Nome <ChevronDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => <div className="font-medium">{row.getValue("nome")}</div>,
-    },
-    { accessorKey: "email", header: "Email" },
-    { accessorKey: "telefone", header: "Telefone" },
-    {
-      accessorKey: "plano",
-      header: "Plano",
-      cell: ({ row }) => <Badge variant="secondary">{row.getValue("plano")}</Badge>,
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string;
-        const atrasado = row.original.pagamentoAtrasado;
-        if (atrasado) {
-          return <Badge variant="destructive"><Clock className="h-3 w-3 mr-1" />Atrasado</Badge>
-        }
-        return <Badge variant={status === "ativo" ? "default" : "outline"}>{status}</Badge>
-      },
-    },
-    { accessorKey: "cadastro", header: "Cadastro" },
-    { id: "actions", cell: () => <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>},
-];
+const toggleUserStatus = httpsCallable(functions, 'toggleUserStatus');
+const sendAnnouncementEmail = httpsCallable(functions, 'sendAnnouncementEmail');
+const getAllUsersData = httpsCallable(functions, 'getAllUsersData');
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useRequireAuth('admin');
@@ -106,62 +86,166 @@ export default function AdminPage() {
     usuariosAtrasados: 0,
   });
 
+  const [announcement, setAnnouncement] = useState({ subject: '', body: '' });
+  const [isSending, setIsSending] = useState(false);
+
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   
   const [statusFilter, setStatusFilter] = useState('todos');
   const [planFilter, setPlanFilter] = useState('todos');
 
+  const fetchData = useCallback(async () => {
+    setIsLoadingData(true);
+    try {
+      const plansCollectionRef = collection(db, "planos");
+      const plansSnapshot = await getDocs(query(plansCollectionRef));
+      const plansList = plansSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Plan[];
+      setPlans(plansList);
+      const plansMap = new Map(plansList.map(p => [p.id, p.nome]));
+
+      const usersCollectionRef = collection(db, "users");
+      const usersSnapshot = await getDocs(query(usersCollectionRef));
+      const allUsers = usersSnapshot.docs
+        .map(doc => ({ id: doc.id, ...(doc.data() as UserDocument) }))
+        .filter(u => u.role === 'user' || !u.role);
+      
+      const usersList: Usuario[] = allUsers.map(data => ({
+        id: data.id,
+        nome: data.nome,
+        email: data.email,
+        telefone: data.telefone || 'N/A',
+        plano: plansMap.get(data.planoId) || data.planoId,
+        status: data.statusAssinatura,
+        cadastro: data.dataCadastro?.toDate().toLocaleDateString('pt-BR') || 'N/A',
+        pagamentoAtrasado: data.statusAssinatura === 'pagamento_atrasado',
+        authDisabled: false,
+      }));
+      
+      setUsuarios(usersList);
+      
+      setStats({
+        totalUsuarios: allUsers.length,
+        usuariosAtivos: allUsers.filter(u => u.statusAssinatura === 'ativo').length,
+        usuariosInativos: allUsers.filter(u => u.statusAssinatura === 'inativo').length,
+        usuariosAtrasados: allUsers.filter(u => u.statusAssinatura === 'pagamento_atrasado').length,
+      });
+
+    } catch (error) {
+        toast.error("Erro ao buscar dados do sistema.");
+        console.error("Fetch Data Error:", error);
+    } finally {
+        setIsLoadingData(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (user?.role === 'admin') {
-      const fetchData = async () => {
-        setIsLoadingData(true);
-        try {
-          const usersCollectionRef = collection(db, "users");
-          const usersSnapshot = await getDocs(query(usersCollectionRef));
-          const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as UserDocument) }));
-          
-          const userRoleOnly = allUsers.filter(u => u.role === 'user' || !u.role);
-          
-          const usersList: Usuario[] = userRoleOnly.map(data => ({
-            id: data.id,
-            nome: data.nome,
-            email: data.email,
-            telefone: data.telefone || 'N/A',
-            plano: data.planoId,
-            status: data.statusAssinatura,
-            cadastro: data.dataCadastro?.toDate().toLocaleDateString('pt-BR') || 'N/A',
-            pagamentoAtrasado: data.statusAssinatura === 'pagamento_atrasado',
-          }));
-          
-          setUsuarios(usersList);
-          
-          setStats({
-            totalUsuarios: userRoleOnly.length,
-            usuariosAtivos: userRoleOnly.filter(u => u.statusAssinatura === 'ativo').length,
-            usuariosInativos: userRoleOnly.filter(u => u.statusAssinatura === 'inativo').length,
-            usuariosAtrasados: userRoleOnly.filter(u => u.statusAssinatura === 'pagamento_atrasado').length,
-          });
-
-          const plansCollectionRef = collection(db, "planos");
-          const plansSnapshot = await getDocs(query(plansCollectionRef));
-          const plansList = plansSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Plan[];
-          setPlans(plansList);
-
-        } catch (error) {
-            toast.error("Erro ao buscar dados do sistema.");
-            console.error("Fetch Data Error:", error);
-        } finally {
-            setIsLoadingData(false);
-        }
-      };
       fetchData();
     }
-  }, [user]);
+  }, [user, fetchData]);
+
+  const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
+    try {
+      await toggleUserStatus({ uid: userId, disabled: !currentStatus });
+      toast.success(`Usuário ${!currentStatus ? 'desativado' : 'ativado'} com sucesso.`);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || "Falha ao alterar o status do usuário.");
+    }
+  };
+
+  const handleSendAnnouncement = async () => {
+      if (!announcement.subject || !announcement.body) {
+          toast.error("O assunto e o corpo do e-mail não podem estar vazios.");
+          return;
+      }
+      setIsSending(true);
+      try {
+          const result: any = await sendAnnouncementEmail({
+              subject: announcement.subject,
+              body: announcement.body,
+          });
+          toast.success(result.data.message);
+          setAnnouncement({ subject: '', body: '' });
+      } catch (error: any) {
+          toast.error(error.message || "Ocorreu um erro ao enviar o anúncio.");
+      } finally {
+          setIsSending(false);
+      }
+  };
+
+  const columns: ColumnDef<Usuario>[] = [
+    {
+      accessorKey: "nome",
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+            Nome <ChevronDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => <div className="font-medium">{row.getValue("nome")}</div>,
+    },
+    { accessorKey: "email", header: "Email" },
+    {
+      accessorKey: "plano",
+      header: "Plano",
+      cell: ({ row }) => <Badge variant="secondary">{row.getValue("plano")}</Badge>,
+    },
+    {
+      accessorKey: "status",
+      header: "Status Assinatura",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string;
+        const atrasado = row.original.pagamentoAtrasado;
+        if (atrasado) {
+          return <Badge variant="destructive"><Clock className="h-3 w-3 mr-1" />Atrasado</Badge>
+        }
+        return <Badge variant={status === "ativo" ? "default" : "outline"}>{status}</Badge>
+      },
+    },
+    {
+      accessorKey: "authDisabled",
+      header: "Status Auth",
+      cell: ({ row }) => {
+        const isDisabled = row.getValue("authDisabled");
+        return isDisabled ? (
+          <Badge variant="destructive">Desativado</Badge>
+        ) : (
+          <Badge className="bg-green-600">Ativo</Badge>
+        );
+      },
+    },
+    { accessorKey: "cadastro", header: "Cadastro" },
+    { 
+      id: "actions",
+      header: () => <div className="text-right">Ações</div>,
+      cell: ({ row }) => {
+        const usuario = row.original;
+        return (
+          <div className="text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Abrir menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleToggleUserStatus(usuario.id, usuario.authDisabled)}>
+                  {usuario.authDisabled ? <UserCheck className="mr-2 h-4 w-4" /> : <UserX className="mr-2 h-4 w-4" />}
+                  {usuario.authDisabled ? 'Ativar Usuário' : 'Desativar Usuário'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )
+      }
+    },
+  ];
 
   const filteredData = useMemo(() => {
     let filteredUsers = [...usuarios];
-
     if (statusFilter !== 'todos') {
         filteredUsers = filteredUsers.filter(user => {
             if (statusFilter === 'atrasados') return user.pagamentoAtrasado;
@@ -171,10 +255,10 @@ export default function AdminPage() {
         });
     }
     if (planFilter !== 'todos') {
-        filteredUsers = filteredUsers.filter(user => user.plano === planFilter);
+        filteredUsers = filteredUsers.filter(user => user.plano === plans.find(p => p.id === planFilter)?.nome);
     }
     return filteredUsers;
-  }, [usuarios, statusFilter, planFilter]);
+  }, [usuarios, statusFilter, planFilter, plans]);
 
   const table = useReactTable({
     data: filteredData,
@@ -212,6 +296,7 @@ export default function AdminPage() {
           <TabsList>
             <TabsTrigger value="usuarios">Usuários</TabsTrigger>
             <TabsTrigger value="assinaturas">Assinaturas</TabsTrigger>
+            <TabsTrigger value="anuncios">Anúncios</TabsTrigger>
           </TabsList>
           
           <TabsContent value="usuarios" className="space-y-4">
@@ -285,6 +370,46 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          
+          <TabsContent value="anuncios" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Send className="h-5 w-5 text-emerald-600" />
+                  Enviar Anúncio por E-mail
+                </CardTitle>
+                <CardDescription>
+                  Envie uma mensagem para todos os usuários cadastrados na plataforma. Use com moderação.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Assunto</Label>
+                  <Input 
+                    id="subject" 
+                    placeholder="Ex: Nova funcionalidade disponível!"
+                    value={announcement.subject}
+                    onChange={(e) => setAnnouncement({...announcement, subject: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="body">Corpo do E-mail</Label>
+                  <Textarea 
+                    id="body"
+                    placeholder="Escreva sua mensagem aqui. Você pode usar HTML para formatação."
+                    rows={8}
+                    value={announcement.body}
+                    onChange={(e) => setAnnouncement({...announcement, body: e.target.value})}
+                  />
+                </div>
+                <Button onClick={handleSendAnnouncement} disabled={isSending}>
+                  {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Enviar para todos os usuários
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
       </div>
     </div>

@@ -8,7 +8,7 @@ import { auth } from "@/lib/firebase"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import Link from "next/link"
-
+import logo from "/public/juris-logo.png"
 export function NavbarAdm() {
   const [isOpen, setIsOpen] = useState(false)
   const router = useRouter();
@@ -30,8 +30,7 @@ export function NavbarAdm() {
         <div className="flex h-16 items-center justify-between">
           <Link href="/dashboard" className="flex items-center space-x-2">
             <div className="flex items-center space-x-2">
-              <Scale className="h-8 w-8 text-blue-600" />
-              <MessageCircle className="h-6 w-6 text-green-600" />
+              <img src={logo.src} alt="Juris Logo" className="w-8"/>
             </div>
             <span className="text-xl font-bold text-gray-900">JurisZap</span>
           </Link>

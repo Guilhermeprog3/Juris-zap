@@ -1,3 +1,5 @@
+// lib/validations.ts
+
 import { z } from "zod";
 
 export const cadastroSchema = z
@@ -20,7 +22,7 @@ export const cadastroSchema = z
         "A senha precisa de uma letra minúscula, uma maiúscula e um número",
       ),
     confirmarSenha: z.string().min(1, "A confirmação de senha é obrigatória"),
-    plano: z.enum(["basico", "essencial_mensal", "aprova_mensal"], {
+    plano: z.enum(["basico", "essencial", "ultra"], {
       errorMap: () => ({ message: "Por favor, selecione um plano." })
     }),
     aceitaTermos: z.boolean().refine((val) => val === true, {
@@ -42,7 +44,9 @@ export const cadastroSemSenhaSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   email: z.string().email("E-mail inválido."),
   telefone: z.string().min(14, "O número de telefone parece inválido."),
-  plano: z.string().min(1, "Você deve selecionar um plano."),
+  plano: z.enum(["basico", "essencial", "ultra"], {
+    errorMap: () => ({ message: "Por favor, selecione um plano." })
+  }),
 });
 
 export type CadastroFormData = z.infer<typeof cadastroSchema>;

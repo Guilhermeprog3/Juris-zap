@@ -19,9 +19,9 @@ import { Separator } from "@/components/ui/separator"
 import { NavbarAdm } from "@/components/navbar_adm"
 
 const PLANS = [
-  { id: "basic", name: "Básico", price: 29.90 },
-  { id: "professional", name: "Profissional", price: 59.90 },
-  { id: "enterprise", name: "Empresarial", price: 99.90 }
+  { id: "basic", name: "Basico", price: 9.90 },
+  { id: "professional", name: "Essencial", price: 19.90 },
+  { id: "enterprise", name: "Ultra", price: 49.90 }
 ]
 
 export default function PagamentoPage() {
@@ -64,11 +64,11 @@ export default function PagamentoPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <Link
-            href="/cadastro"
+            href="/dashboard"
             className="inline-flex items-center text-emerald-600 hover:text-emerald-800 transition-colors mb-6 group"
           >
             <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-            Voltar ao Cadastro
+            Voltar ao Dashboard
           </Link>
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-gray-900">

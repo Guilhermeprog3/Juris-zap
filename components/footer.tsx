@@ -21,7 +21,7 @@ export function Footer() {
               <span>+55 (XX) XXXXX-XXXX</span>
             </div>
             <div className="flex space-x-4">
-              <Link href="https://facebook.com/juriszap" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-green-400 transition-colors">
+              <Link href="https://www.facebook.com/profile.php?id=61575631396883" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-green-400 transition-colors">
                 <Facebook className="h-6 w-6" />
               </Link>
               <Link href="https://instagram.com/juriszap" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-green-400 transition-colors">

@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, Scale, MessageCircle } from "lucide-react"
+import logo from "/public/juris-logo.png"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -15,8 +16,7 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
             <div className="flex items-center space-x-2">
-              <Scale className="h-8 w-8 text-blue-600" />
-              <MessageCircle className="h-6 w-6 text-green-600" />
+                <img src={logo.src} alt="Juris Logo" className="w-8"/>
             </div>
             <span className="text-xl font-bold text-gray-900">JurisZap</span>
           </Link>
@@ -27,6 +27,9 @@ export function Navbar() {
             </Link>
             <Link href="/planos" className="text-gray-600 hover:text-gray-900 transition-colors">
               Planos
+            </Link>
+            <Link href="/sobre" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Sobre
             </Link>
             <Link href="/login">
               <Button variant="ghost">Entrar</Button>
@@ -50,7 +53,7 @@ export function Navbar() {
                 <Link href="/planos" className="text-lg font-medium" onClick={() => setIsOpen(false)}>
                   Planos
                 </Link>
-                <Link href="/#sobre" className="text-lg font-medium" onClick={() => setIsOpen(false)}>
+                <Link href="/sobre" className="text-lg font-medium" onClick={() => setIsOpen(false)}>
                   Sobre
                 </Link>
                 <div className="pt-4 space-y-2">
@@ -60,7 +63,7 @@ export function Navbar() {
                     </Button>
                   </Link>
                   <Link href="/cadastro" onClick={() => setIsOpen(false)}>
-                    <Button className="w-full">Começar Grátis</Button>
+                    <Button className="w-full">Começar</Button>
                   </Link>
                 </div>
               </div>

@@ -9,47 +9,47 @@ import { CheckCircle, X, ChevronRight, Sparkles, ShieldCheck } from "lucide-reac
 export default function PlanosPage() {
   const planos = [
     {
-      nome: "Essencial",
-      id_mensal: "essencial_mensal",
+      nome: "Basico",
+      id_mensal: "basico",
       preco: "R$ 9,90",
       periodo: "/mês",
       descricao: "A melhor escolha para o inicio da sua jornada",
       popular: false,
-      cta: "Assinar Plano Essencial",
-      href: "/cadastro?plano=essencial_mensal",
+      cta: "Assinar Plano Básico",
+      href: "/cadastro?plano=basico",
       recursos: [
         "IA para duvidas jurídicas integrada ao whatsapp",
         "Auxilio em exercicios e questões",
         "Respostas rapidas e precisas",
       ],
-    limitacoes: ["Sem leitura de imagens","sem leitura de documentos","sem geração de imagens"],
+      limitacoes: ["Sem leitura de imagens","sem leitura de documentos","sem geração de imagens"],
     },
     {
-      nome: "Básico",
-      id_mensal: "basico",
+      nome: "Essencial",
+      id_mensal: "essencial",
       preco: "R$ 19,90",
       periodo: "/mês",
       descricao: "Para quem quer começar a explorar",
       popular: true,
-      cta: "Quero o Básico no Zap!",
-      href: "/cadastro?plano=basico",
+      cta: "Quero o Essencial no Zap!",
+      href: "/cadastro?plano=essencial",
       recursos: [
         "Tudo do plano Essencial",
         "IA com inteligência avançada",
         "Respostas mais completas",
         "Leitura de imagens e documentos",
       ],
-    limitacoes: ["Sem geração de imagens", "Foco total na OAB e concursos"],
+      limitacoes: ["Sem geração de imagens", "Foco total na OAB e concursos"],
     },
     {
-      nome: "Aprova+",
-      id_mensal: "aprova_mensal",
-      preco: "R$ 39,90",
+      nome: "Ultra",
+      id_mensal: "ultra",
+      preco: "R$ 49,90",
       periodo: "/mês",
       descricao: "Foco total na sua aprovação",
       popular: false,
-      cta: "Assinar Aprova+",
-      href: "/cadastro?plano=aprova_mensal",
+      cta: "Assinar Ultra",
+      href: "/cadastro?plano=ultra",
       recursos: [
         "Tudo do plano Basico",
         "Simulados e cronogramas",
@@ -64,7 +64,6 @@ export default function PlanosPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
       <Navbar />
-
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -78,7 +77,6 @@ export default function PlanosPage() {
               Soluções completas para cada etapa dos seus estudos, do básico à aprovação.
             </p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
             {planos.map((plano) => (
               <Card 
@@ -93,9 +91,7 @@ export default function PlanosPage() {
                     </Badge>
                   </div>
                 )}
-
                 <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
-
                 <CardHeader className="text-center">
                   <CardTitle className="text-2xl text-gray-900">{plano.nome}</CardTitle>
                   <div className="mt-4">
@@ -104,7 +100,6 @@ export default function PlanosPage() {
                   </div>
                   <CardDescription className="mt-2 h-10 text-gray-600">{plano.descricao}</CardDescription>
                 </CardHeader>
-
                 <CardContent className="space-y-4 flex-grow flex flex-col">
                   <div className="space-y-3 flex-grow">
                     {plano.recursos.map((recurso, i) => (
@@ -113,7 +108,6 @@ export default function PlanosPage() {
                         <span className="text-sm text-gray-700">{recurso}</span>
                       </div>
                     ))}
-
                     {plano.limitacoes.map((limitacao, i) => (
                       <div key={i} className="flex items-start space-x-3">
                         <X className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
@@ -121,7 +115,6 @@ export default function PlanosPage() {
                       </div>
                     ))}
                   </div>
-
                   <div className="pt-6 mt-auto">
                     <Link href={plano.href}>
                       <Button

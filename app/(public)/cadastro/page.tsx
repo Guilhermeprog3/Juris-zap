@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { useForm, Controller } from "react-hook-form"
+import { useForm, Controller, SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
@@ -17,16 +17,20 @@ import { functions } from "@/lib/firebase"
 import { loadStripe } from '@stripe/stripe-js'
 import { toast } from "sonner"
 
-const planosStripe = {
-  basico: "price_1RgCq1Kr3wtpRgdkCLC4Y7tk",
-  essencial_mensal: "price_1RgChRKr3wtpRgdkn0YDJ7b1",
-  aprova_mensal: "price_1RgBxqKr3wtpRgdko5aJtiis",
-};
+
 const planosDisponiveis = {
-  basico: "Básico - R$ 19,90/mês",
-  essencial_mensal: "Essencial - R$ 9,90/mês",
-  aprova_mensal: "Aprova+ - R$ 39,90/mês",
+  basico: "Basico - R$ 9,90/mês",
+  essencial: "Essencial - R$ 19,90/mês",
+  ultra: "Ultra - R$ 49,90/mês",
 };
+
+const planosStripe = {
+  basico: "price_1RgChRKr3wtpRgdkn0YDJ7b1",
+  essencial: "price_1RgCq1Kr3wtpRgdkCLC4Y7tk",
+  ultra: "price_1RrOYxKr3wtpRgdkBap8B42k",
+};
+
+type PlanoKey = keyof typeof planosDisponiveis;
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -34,7 +38,12 @@ export default function CadastroPage() {
   const [isLoading, setIsLoading] = useState(false)
   const searchParams = useSearchParams()
   const planoInicial = searchParams.get("plano")
-  const planoValido = planoInicial && Object.keys(planosDisponiveis).includes(planoInicial) ? planoInicial : "essencial_mensal"
+
+  const isPlanoValido = (plano: string | null): plano is PlanoKey => {
+    return plano !== null && Object.keys(planosDisponiveis).includes(plano);
+  }
+  
+  const planoValido: PlanoKey = isPlanoValido(planoInicial) ? planoInicial : "essencial";
 
   const {
     register,
@@ -45,7 +54,12 @@ export default function CadastroPage() {
     formState: { errors },
   } = useForm<CadastroSemSenhaFormData>({
     resolver: zodResolver(cadastroSemSenhaSchema),
-    defaultValues: { plano: planoValido },
+    defaultValues: {
+      plano: planoValido,
+      nome: "",
+      email: "",
+      telefone: "",
+    },
   })
 
   useEffect(() => {
@@ -58,20 +72,16 @@ export default function CadastroPage() {
     return value.replace(/\D/g, "").replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2").substring(0, 15)
   }
 
-  const onSubmit = async (data: CadastroSemSenhaFormData) => {
+  const onSubmit: SubmitHandler<CadastroSemSenhaFormData> = async (data) => {
     setIsLoading(true);
 
     try {
         const functionUrl = "https://checkuserstatus-q6s4qc63ta-uc.a.run.app";
-
         const response = await fetch(functionUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: data.email, telefone: data.telefone }),
         });
-
         const resultData = await response.json();
 
         if (!response.ok) {
@@ -89,7 +99,7 @@ export default function CadastroPage() {
         return;
     }
 
-    const priceId = planosStripe[data.plano as keyof typeof planosStripe];
+    const priceId = planosStripe[data.plano];
 
     if (!priceId) {
         toast.error("Plano selecionado inválido. Por favor, escolha outro plano.");
@@ -179,12 +189,13 @@ export default function CadastroPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="plano">Plano</Label>
-                    <Select value={watchedPlano} onValueChange={(value) => setValue("plano", value)}>
+                    <Select value={watchedPlano} onValueChange={(value) => setValue("plano", value as PlanoKey)}>
                       <SelectTrigger className={errors.plano ? "border-red-500" : ""}><SelectValue placeholder="Selecione um plano" /></SelectTrigger>
                       <SelectContent>
                         {Object.entries(planosDisponiveis).map(([value, label]) => ( <SelectItem key={value} value={value}>{label}</SelectItem> ))}
                       </SelectContent>
                     </Select>
+                    {errors.plano && <p className="text-sm text-red-500">{errors.plano.message}</p>}
                   </div>
                   <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 font-semibold text-base" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
