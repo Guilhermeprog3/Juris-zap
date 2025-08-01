@@ -16,10 +16,17 @@ export function Footer() {
               <Mail className="h-5 w-5" />
               <span>juriszap.br@gmail.com</span>
             </a>
-            <div className="flex items-center space-x-2 text-sm">
+
+            <a 
+              href="https://wa.me/558694167491" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center space-x-2 text-sm hover:text-green-400 transition-colors"
+            >
               <Phone className="h-5 w-5" />
-              <span>+55 (XX) XXXXX-XXXX</span>
-            </div>
+              <span>+55 86 9416-7491</span>
+            </a>
+            
             <div className="flex space-x-4">
               <Link href="https://www.facebook.com/profile.php?id=61575631396883" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-green-400 transition-colors">
                 <Facebook className="h-6 w-6" />

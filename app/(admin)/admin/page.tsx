@@ -66,7 +66,7 @@ type UserDocument = {
     statusAssinatura: StatusAssinatura;
     dataCadastro: Timestamp;
     role: string;
-    disabled?: boolean; // CORREÇÃO: Adicionada a propriedade disabled
+    disabled?: boolean; 
 }
 
 const toggleUserStatus = httpsCallable(functions, 'toggleUserStatus');
@@ -120,7 +120,7 @@ export default function AdminPage() {
         status: data.statusAssinatura,
         cadastro: data.dataCadastro?.toDate().toLocaleDateString('pt-BR') || 'N/A',
         pagamentoAtrasado: data.statusAssinatura === 'pagamento_atrasado',
-        authDisabled: data.disabled || false, // CORREÇÃO: Utilizando a propriedade `disabled`
+        authDisabled: data.disabled || false,
       }));
 
       setUsuarios(usersList);

@@ -3,7 +3,6 @@ import * as admin from "firebase-admin";
 import Stripe from "stripe";
 import cors from "cors";
 
-// Inicialização do Firebase Admin
 try {
   admin.initializeApp();
 } catch (e) {
@@ -13,19 +12,15 @@ try {
 const db = admin.firestore();
 const auth = admin.auth();
 
-// Definição dos segredos
 const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET");
 
-// URL do seu site
 const siteUrl = "https://juriszap.com.br";
 
-// Configura o CORS
 const corsHandler = cors({
   origin: true,
 });
 
-// --- Interfaces para Tipagem ---
 interface CreateCheckoutData {
   priceId: string;
   email: string;
@@ -101,7 +96,6 @@ export const checkUserStatus = functions.https.onRequest((req, res) => {
     });
 });
 
-// --- Funções Autenticadas ---
 
 export const updatePhoneNumber = functions.https.onCall(
   async (request): Promise<UpdatePhoneNumberResult> => {
@@ -431,7 +425,6 @@ export const sendAnnouncementEmail = functions.https.onCall(
         const usersSnapshot = await db.collection('users').where('role', '==', 'user').get();
         const emails = usersSnapshot.docs.map(doc => doc.data().email);
 
-        // TODO: Implementar envio de e-mail em massa aqui (ex: SendGrid)
         functions.logger.info(`Simulando envio de e-mail para ${emails.length} usuários.`);
         functions.logger.info("Assunto:", subject);
 
