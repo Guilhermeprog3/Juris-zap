@@ -28,8 +28,8 @@ interface Plan {
 
 const planIcons: { [key: string]: LucideIcon } = {
   basico: Leaf,
-  essencial_mensal: Scale,
-  aprova_mensal: Gavel,
+  essencial: Scale,
+  ultra: Gavel,
   default: Gem
 };
 

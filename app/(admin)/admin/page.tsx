@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { 
+import {
   Users, UserX, Search, MoreHorizontal, Settings, ChevronDown, Clock, Loader2, UserCheck, Send
 } from "lucide-react"
 import {
@@ -66,6 +66,7 @@ type UserDocument = {
     statusAssinatura: StatusAssinatura;
     dataCadastro: Timestamp;
     role: string;
+    disabled?: boolean; // CORREÇÃO: Adicionada a propriedade disabled
 }
 
 const toggleUserStatus = httpsCallable(functions, 'toggleUserStatus');
@@ -74,11 +75,11 @@ const getAllUsersData = httpsCallable(functions, 'getAllUsersData');
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useRequireAuth('admin');
-  
+
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  
+
   const [stats, setStats] = useState({
     totalUsuarios: 0,
     usuariosAtivos: 0,
@@ -91,7 +92,7 @@ export default function AdminPage() {
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  
+
   const [statusFilter, setStatusFilter] = useState('todos');
   const [planFilter, setPlanFilter] = useState('todos');
 
@@ -109,7 +110,7 @@ export default function AdminPage() {
       const allUsers = usersSnapshot.docs
         .map(doc => ({ id: doc.id, ...(doc.data() as UserDocument) }))
         .filter(u => u.role === 'user' || !u.role);
-      
+
       const usersList: Usuario[] = allUsers.map(data => ({
         id: data.id,
         nome: data.nome,
@@ -119,11 +120,11 @@ export default function AdminPage() {
         status: data.statusAssinatura,
         cadastro: data.dataCadastro?.toDate().toLocaleDateString('pt-BR') || 'N/A',
         pagamentoAtrasado: data.statusAssinatura === 'pagamento_atrasado',
-        authDisabled: false,
+        authDisabled: data.disabled || false, // CORREÇÃO: Utilizando a propriedade `disabled`
       }));
-      
+
       setUsuarios(usersList);
-      
+
       setStats({
         totalUsuarios: allUsers.length,
         usuariosAtivos: allUsers.filter(u => u.statusAssinatura === 'ativo').length,
@@ -216,7 +217,7 @@ export default function AdminPage() {
       },
     },
     { accessorKey: "cadastro", header: "Cadastro" },
-    { 
+    {
       id: "actions",
       header: () => <div className="text-right">Ações</div>,
       cell: ({ row }) => {

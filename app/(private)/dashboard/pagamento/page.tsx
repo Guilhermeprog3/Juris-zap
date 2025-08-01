@@ -19,16 +19,16 @@ import { Separator } from "@/components/ui/separator"
 import { NavbarAdm } from "@/components/navbar_adm"
 
 const PLANS = [
-  { id: "basic", name: "Básico", price: 29.90 },
-  { id: "professional", name: "Profissional", price: 59.90 },
-  { id: "enterprise", name: "Empresarial", price: 99.90 }
+  { id: "basico", name: "Basico", price: 9.90 },      
+  { id: "essencial", name: "Essencial", price: 19.90 },  
+  { id: "ultra", name: "Ultra", price: 49.90 } 
 ]
 
 export default function PagamentoPage() {
   const [paymentMethod, setPaymentMethod] = useState("pix")
   const [isProcessing, setIsProcessing] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState("professional")
-  
+  const [selectedPlan, setSelectedPlan] = useState("essencial") 
+
   const [cardNumber, setCardNumber] = useState("")
   const [cardName, setCardName] = useState("")
   const [expiryDate, setExpiryDate] = useState("")
@@ -95,8 +95,8 @@ export default function PagamentoPage() {
                       Escolha como deseja pagar sua assinatura
                     </CardDescription>
                   </div>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => document.getElementById('plan-selector')?.scrollIntoView({ behavior: 'smooth' })}
                   >
@@ -106,8 +106,8 @@ export default function PagamentoPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <RadioGroup 
-                  defaultValue="pix" 
+                <RadioGroup
+                  defaultValue="pix"
                   className="space-y-4"
                   value={paymentMethod}
                   onValueChange={setPaymentMethod}
@@ -147,7 +147,7 @@ export default function PagamentoPage() {
                           <QrCode className="h-32 w-32 text-emerald-600" />
                         </div>
                       </div>
-                      
+
                       <div className="w-full space-y-3">
                         <div className="flex justify-between">
                           <span className="text-sm text-gray-600">Código PIX:</span>
@@ -178,7 +178,7 @@ export default function PagamentoPage() {
                         onChange={(e) => setCardNumber(e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="cardName">Nome no Cartão</Label>
                       <Input
@@ -188,7 +188,7 @@ export default function PagamentoPage() {
                         onChange={(e) => setCardName(e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="expiryDate">Validade (MM/AA)</Label>
@@ -200,7 +200,7 @@ export default function PagamentoPage() {
                           maxLength={5}
                         />
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="cvv">CVV</Label>
                         <Input
@@ -230,7 +230,7 @@ export default function PagamentoPage() {
               <CardContent className="space-y-4">
                 <div id="plan-selector" className="space-y-2">
                   <Label>Plano Selecionado</Label>
-                  <RadioGroup 
+                  <RadioGroup
                     value={selectedPlan}
                     onValueChange={setSelectedPlan}
                     className="grid grid-cols-3 gap-2"
@@ -272,7 +272,7 @@ export default function PagamentoPage() {
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   className="w-full mt-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
                   onClick={handlePaymentSubmit}
                   disabled={isProcessing}
@@ -291,7 +291,7 @@ export default function PagamentoPage() {
                 </Button>
 
                 <p className="text-xs text-gray-500 mt-4">
-                  {paymentMethod === "pix" 
+                  {paymentMethod === "pix"
                     ? "O pagamento via PIX é processado instantaneamente."
                     : "Seu cartão será cobrado imediatamente."}
                 </p>

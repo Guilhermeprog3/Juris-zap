@@ -27,7 +27,6 @@ interface Plan {
   nome: string;
 }
 
-// ** Adicione esta interface para o tipo de retorno da Cloud Function **
 interface UpdatePhoneNumberCallableResult {
   data: {
     success: boolean;
@@ -122,10 +121,9 @@ export default function DashboardPage() {
 
     setIsUpdating(true);
     try {
-      // ** Usa o tipo explícito para o retorno da chamada da função **
       const updatePhoneNumberCallable = httpsCallable<
         { uid: string; newPhoneNumber: string }, 
-        UpdatePhoneNumberCallableResult['data'] // Especifica o tipo esperado para result.data
+        UpdatePhoneNumberCallableResult['data']
       >(functions, 'updatePhoneNumber');
 
       const result = await updatePhoneNumberCallable({ 
@@ -133,10 +131,9 @@ export default function DashboardPage() {
         newPhoneNumber: newPhoneNumber 
       });
 
-      // Agora, TypeScript sabe que result.data tem 'success' e 'message'
       if (result.data.success) { 
         setUserPhoneNumber(formatPhoneNumber(newPhoneNumber)); 
-        toast.success(result.data.message || "Número de telefone atualizado!"); // Adicionado fallback para a mensagem
+        toast.success(result.data.message || "Número de telefone atualizado!");
         setIsModalOpen(false);
       } else {
         toast.error(result.data.message || "Não foi possível atualizar o número.");
