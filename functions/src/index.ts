@@ -268,7 +268,6 @@ export const createTopUpSession = functions.https.onCall(
   }
 );
 
-// --- Webhooks ---
 
 export const stripeWebhook = functions.https.onRequest(
   { secrets: [stripeSecret, stripeWebhookSecret] },
@@ -385,8 +384,6 @@ export const stripeWebhook = functions.https.onRequest(
     }
     res.status(200).send({ received: true });
 });
-
-// --- Funções de Admin ---
 
 export const toggleUserStatus = functions.https.onCall(
   async (request) => {

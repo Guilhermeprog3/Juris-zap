@@ -31,11 +31,17 @@ export function Navbar() {
             <Link href="/sobre" className="text-gray-600 hover:text-gray-900 transition-colors">
               Sobre
             </Link>
+            <Link href="/termos" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Termos de Uso
+            </Link>
+            <Link href="/privacidade" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Privacidade
+            </Link>
             <Link href="/login">
               <Button variant="ghost">Entrar</Button>
             </Link>
             <Link href="/cadastro">
-              <Button>Começar Grátis</Button>
+              <Button>Começar</Button>
             </Link>
           </div>
 
@@ -55,6 +61,12 @@ export function Navbar() {
                 </Link>
                 <Link href="/sobre" className="text-lg font-medium" onClick={() => setIsOpen(false)}>
                   Sobre
+                </Link>
+                <Link href="/termos" className="text-lg font-medium" onClick={() => setIsOpen(false)}>
+                  Termos de Uso
+                </Link>
+                <Link href="/privacidade" className="text-lg font-medium" onClick={() => setIsOpen(false)}>
+                  Privacidade
                 </Link>
                 <div className="pt-4 space-y-2">
                   <Link href="/login" onClick={() => setIsOpen(false)}>

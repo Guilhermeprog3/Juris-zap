@@ -9,12 +9,13 @@ import Image from "next/image"
 const creators = [
  {
   name: "Guilherme Silva Rios",
-  role: "CEO & Desenvolvedor Full-Stack",
+  role: "Desenvolvedor Full-Stack",
   isDeveloper: true,
   portfolioUrl: "https://guilhermeriosdev.vercel.app/",
   imageUrl: "https://github.com/Guilhermeprog3.png",
   contact: {
-   linkedin: "https://www.linkedin.com/in/guilherme-rios-dev",
+    email: "guilhermeriosprog@email.com",
+   linkedin: "https://www.linkedin.com/in/guilherme-s-rios-dev/",
    github: "https://github.com/Guilhermeprog3",
   },
  },
@@ -24,7 +25,7 @@ const creators = [
   isDeveloper: false,
   imageUrl: "/placeholder-user.jpg",
   contact: {
-   email: "mailto:socio1@email.com",
+   email: "socio1@email.com",
    linkedin: "https://linkedin.com/in/usuario",
   },
  },
@@ -34,7 +35,7 @@ const creators = [
   isDeveloper: false,
   imageUrl: "/placeholder-user.jpg",
   contact: {
-   email: "mailto:socio2@email.com",
+   email: "socio2@email.com",
    linkedin: "https://linkedin.com/in/usuario",
   },
  },
@@ -70,10 +71,10 @@ export default function SobrePage() {
        </div>
        <div className="order-1 lg:order-2 flex justify-center items-center">
         <div className="relative w-64 h-64 flex items-center justify-center">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-200 to-teal-200 rounded-full blur-2xl opacity-60"></div>
-          <div className="relative bg-white/80 backdrop-blur-lg p-12 rounded-full shadow-lg border">
-            <Bot className="h-32 w-32 text-emerald-600" />
-          </div>
+         <div className="absolute inset-0 bg-gradient-to-br from-emerald-200 to-teal-200 rounded-full blur-2xl opacity-60"></div>
+         <div className="relative bg-white/80 backdrop-blur-lg p-12 rounded-full shadow-lg border">
+          <Bot className="h-32 w-32 text-emerald-600" />
+         </div>
         </div>
        </div>
       </div>
@@ -116,9 +117,15 @@ export default function SobrePage() {
 
          <CardContent className="flex-grow flex flex-col justify-end text-center px-6 pb-6">
           <div className="flex justify-center items-center space-x-4 text-gray-500 my-6">
-           <a href={creator.contact.email} className="hover:text-emerald-600 transition-colors" aria-label="Email">
-            <Mail className="h-6 w-6" />
-           </a>
+           {creator.contact.email && (
+            <a 
+              href={`mailto:${creator.contact.email}`} 
+              className="hover:text-emerald-600 transition-colors" 
+              aria-label="Email"
+            >
+             <Mail className="h-6 w-6" />
+            </a>
+           )}
            <a href={creator.contact.linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-600 transition-colors" aria-label="LinkedIn">
             <Linkedin className="h-6 w-6" />
            </a>
