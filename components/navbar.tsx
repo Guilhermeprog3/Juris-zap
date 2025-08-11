@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, Scale, MessageCircle } from "lucide-react"
+import { Menu } from "lucide-react"
 import logo from "/public/juris-logo.png"
 
 export function Navbar() {
@@ -31,12 +31,6 @@ export function Navbar() {
             <Link href="/sobre" className="text-gray-600 hover:text-gray-900 transition-colors">
               Sobre
             </Link>
-            <Link href="/termos" className="text-gray-600 hover:text-gray-900 transition-colors">
-              Termos de Uso
-            </Link>
-            <Link href="/privacidade" className="text-gray-600 hover:text-gray-900 transition-colors">
-              Privacidade
-            </Link>
             <Link href="/login">
               <Button variant="ghost">Entrar</Button>
             </Link>
@@ -61,12 +55,6 @@ export function Navbar() {
                 </Link>
                 <Link href="/sobre" className="text-lg font-medium" onClick={() => setIsOpen(false)}>
                   Sobre
-                </Link>
-                <Link href="/termos" className="text-lg font-medium" onClick={() => setIsOpen(false)}>
-                  Termos de Uso
-                </Link>
-                <Link href="/privacidade" className="text-lg font-medium" onClick={() => setIsOpen(false)}>
-                  Privacidade
                 </Link>
                 <div className="pt-4 space-y-2">
                   <Link href="/login" onClick={() => setIsOpen(false)}>
