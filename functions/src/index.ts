@@ -42,7 +42,6 @@ interface UpdatePhoneNumberResult {
   message?: string;
 }
 
-
 export const checkUserStatus = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
         if (req.method !== 'POST') {
@@ -56,46 +55,49 @@ export const checkUserStatus = functions.https.onRequest((req, res) => {
         }
 
         try {
-            const promises = [];
             const formattedPhoneNumber = telefone ? `+55${telefone.replace(/\D/g, '')}` : null;
 
+            const promises = [];
             if (email) {
-                promises.push(auth.getUserByEmail(email).then(() => 'email').catch(err => {
-                    if (err.code === 'auth/user-not-found') return null;
-                    throw err;
-                }));
+                promises.push(auth.getUserByEmail(email).then(() => 'emailAuth').catch(() => null));
+                promises.push(db.collection('users').where('email', '==', email).limit(1).get().then(snap => !snap.empty ? 'emailStore' : null));
             }
-
             if (formattedPhoneNumber) {
-                promises.push(auth.getUserByPhoneNumber(formattedPhoneNumber).then(() => 'phone').catch(err => {
-                    if (err.code === 'auth/user-not-found') return null;
-                    throw err;
-                }));
+                promises.push(auth.getUserByPhoneNumber(formattedPhoneNumber).then(() => 'phoneAuth').catch(() => null));
+                promises.push(db.collection('users').where('telefone', '==', formattedPhoneNumber).limit(1).get().then(snap => !snap.empty ? 'phoneStore' : null));
             }
 
-            const results = await Promise.allSettled(promises);
+            const results = await Promise.all(promises);
+            const foundBy = results.filter(r => r !== null);
 
-            const emailExists = results.some(result => result.status === 'fulfilled' && result.value === 'email');
-            const phoneExists = results.some(result => result.status === 'fulfilled' && result.value === 'phone');
-
-            let existenceMessage = "";
-            if (emailExists && phoneExists) {
-                existenceMessage = "Já existe uma conta com este e-mail e telefone.";
-            } else if (emailExists) {
-                existenceMessage = "Já existe uma conta com este e-mail.";
-            } else if (phoneExists) {
-                existenceMessage = "Já existe uma conta com este telefone.";
+            if (foundBy.length > 0) {
+                let message = "Já existe uma conta com este ";
+                if (foundBy.includes('emailAuth') || foundBy.includes('emailStore')) {
+                    message += "e-mail";
+                }
+                if (foundBy.includes('phoneAuth') || foundBy.includes('phoneStore')) {
+                    if (message.includes("e-mail")) message += " e ";
+                    message += "telefone";
+                }
+                message += ". Por favor, faça login.";
+                
+                return res.status(200).send({
+                    exists: true,
+                    message: message
+                });
             }
 
-            return res.status(200).send({ exists: emailExists || phoneExists, message: existenceMessage });
+            return res.status(200).send({ exists: false });
 
-        } catch (error) {
+        } catch (error: any) {
+            if (error.code === 'auth/user-not-found') {
+                return res.status(200).send({ exists: false });
+            }
             functions.logger.error("Erro inesperado na função checkUserStatus:", error);
-            return res.status(500).send({ error: { message: "Erro interno ao verificar os dados do usuário." } });
+            return res.status(500).send({ error: { message: "Erro interno ao verificar seus dados." } });
         }
     });
 });
-
 
 export const updatePhoneNumber = functions.https.onCall(
   async (request): Promise<UpdatePhoneNumberResult> => {
@@ -168,6 +170,9 @@ export const createStripeCheckoutSession = functions.https.onCall(
         metadata: {
           firebase_nome: nome,
           firebase_telefone: telefone,
+        },
+        subscription_data: {
+          trial_period_days: 3,
         },
         success_url: successUrl,
         cancel_url: cancelUrl,
@@ -304,6 +309,7 @@ export const stripeWebhook = functions.https.onRequest(
         try {
           const subscription = await stripeClient.subscriptions.retrieve(stripeSubscriptionId);
           const planoId = subscription.items.data[0]?.price.id;
+          const trialEndTimestamp = subscription.trial_end ? admin.firestore.Timestamp.fromMillis(subscription.trial_end * 1000) : null;
 
           if (!planoId) {
             functions.logger.error(`Não foi possível encontrar o planoId para a assinatura: ${stripeSubscriptionId}`);
@@ -320,11 +326,12 @@ export const stripeWebhook = functions.https.onRequest(
           });
           
           await db.collection("users").doc(userRecord.uid).set({
-            nome, email, telefone, planoId,
+            nome, email, telefone: formattedPhoneNumber, planoId,
             statusAssinatura: "ativo",
             stripeCustomerId: subscription.customer as string,
             dataCadastro: admin.firestore.FieldValue.serverTimestamp(),
             proximoVencimento: admin.firestore.Timestamp.fromMillis((subscription as any).current_period_end * 1000),
+            trial_end: trialEndTimestamp,
             role: "user",
           });
 
@@ -332,9 +339,8 @@ export const stripeWebhook = functions.https.onRequest(
             url: `${siteUrl}/login`,
             handleCodeInApp: false,
           };
-          const link = await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
+          await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
           
-          functions.logger.info(`Link para criação de senha gerado para ${email}: ${link}`);
           functions.logger.info(`Usuário criado com sucesso: ${userRecord.uid} para o cliente Stripe ${subscription.customer as string}`);
 
         } catch (error) {
@@ -385,6 +391,7 @@ export const stripeWebhook = functions.https.onRequest(
     res.status(200).send({ received: true });
 });
 
+// Funções administrativas
 export const toggleUserStatus = functions.https.onCall(
   async (request) => {
     if (request.auth?.token.admin !== true) {

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { CheckCircle, X, ChevronRight, Sparkles, ShieldCheck } from "lucide-react"
+import { CheckCircle, X, ChevronRight, Sparkles, ShieldCheck, Gift } from "lucide-react"
 
 export default function PlanosPage() {
   const planos = [
@@ -15,7 +15,7 @@ export default function PlanosPage() {
       periodo: "/mês",
       descricao: "A melhor escolha para o inicio da sua jornada",
       popular: false,
-      cta: "Assinar Plano Básico",
+      cta: "Iniciar Teste Gratuito",
       href: "/cadastro?plano=basico",
       recursos: [
         "IA para duvidas jurídicas integrada ao whatsapp",
@@ -31,7 +31,7 @@ export default function PlanosPage() {
       periodo: "/mês",
       descricao: "Para quem quer começar a explorar",
       popular: true,
-      cta: "Quero o Essencial no Zap!",
+      cta: "Iniciar Teste Gratuito",
       href: "/cadastro?plano=essencial",
       recursos: [
         "Tudo do plano Essencial",
@@ -48,7 +48,7 @@ export default function PlanosPage() {
       periodo: "/mês",
       descricao: "Foco total na sua aprovação",
       popular: false,
-      cta: "Assinar Ultra",
+      cta: "Iniciar Teste Gratuito",
       href: "/cadastro?plano=ultra",
       recursos: [
         "Tudo do plano Basico",
@@ -74,7 +74,7 @@ export default function PlanosPage() {
               Escolha o plano ideal para sua <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">jornada jurídica</span>
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Soluções completas para cada etapa dos seus estudos, do básico à aprovação.
+              Todos os planos começam com <strong>3 dias de teste gratuito</strong>. Sem compromisso, cancele quando quiser.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
@@ -101,6 +101,12 @@ export default function PlanosPage() {
                   <CardDescription className="mt-2 h-10 text-gray-600">{plano.descricao}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 flex-grow flex flex-col">
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg p-3 text-center">
+                      <div className="flex items-center justify-center font-semibold">
+                          <Gift className="h-5 w-5 mr-2" />
+                          <span>3 Dias de Teste Gratuito</span>
+                      </div>
+                  </div>
                   <div className="space-y-3 flex-grow">
                     {plano.recursos.map((recurso, i) => (
                       <div key={i} className="flex items-start space-x-3">
@@ -127,6 +133,10 @@ export default function PlanosPage() {
                         <ChevronRight className="ml-2 h-5 w-5" />
                       </Button>
                     </Link>
+                    <div className="flex items-center justify-center mt-3 text-xs text-gray-500">
+                        <ShieldCheck className="h-4 w-4 mr-1.5 text-emerald-600" />
+                        <span>Cancele a qualquer momento.</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

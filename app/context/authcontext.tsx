@@ -5,7 +5,7 @@ import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, User 
 import { getFirestore, doc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useRouter, usePathname } from 'next/navigation';
 import { app } from '@/lib/firebase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { toast } from "sonner";
 
 interface UserProfile {
@@ -18,6 +18,7 @@ interface UserProfile {
   stripeCustomerId: string;
   role: 'user' | 'admin';
   proximoVencimento?: Timestamp;
+  trial_end?: Timestamp;
 }
 
 interface AuthContextType {

@@ -31,7 +31,7 @@ export default function EstudantePage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/cadastro">
               <Button size="lg" className="text-lg px-8 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-lg">
-                Começar Agora
+                Começar Teste Gratuito
                 <Zap className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -42,6 +42,7 @@ export default function EstudantePage() {
               </Button>
             </Link>
           </div>
+          <p className="mt-4 text-sm text-gray-600">Teste grátis por 3 dias. Cancele quando quiser.</p>
           
           <div className="mt-16 mx-auto max-w-4xl bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
             <div className="bg-gray-100 h-8 flex items-center px-4">
@@ -187,12 +188,12 @@ export default function EstudantePage() {
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Pronto para revolucionar seus estudos jurídicos?</h2>
           <p className="text-xl text-emerald-100 mb-8 max-w-2xl mx-auto">
-            Junte-se a milhares de estudantes e profissionais que já usam JurisZap para dominar o Direito
+            Comece seu teste gratuito de 3 dias. Junte-se a milhares de estudantes que já usam JurisZap para dominar o Direito.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/cadastro">
               <Button size="lg" className="text-lg px-8 bg-white text-emerald-700 hover:bg-white/90 shadow-lg">
-                Começar Agora
+                Iniciar Teste Gratuito
                 <ChevronRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -200,7 +201,7 @@ export default function EstudantePage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-lg px-8 text-emerald-700 border-white hover:bg-white/10 hover:text-white"
+                className="text-lg px-8 text-white border-white hover:bg-white/10 hover:text-white"
               >
                 Ver Planos
               </Button>

@@ -35,7 +35,7 @@ export function Navbar() {
               <Button variant="ghost">Entrar</Button>
             </Link>
             <Link href="/cadastro">
-              <Button>Começar</Button>
+              <Button>Começar Gratis</Button>
             </Link>
           </div>
 

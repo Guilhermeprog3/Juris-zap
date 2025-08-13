@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CheckCircle, Bot, Loader2, AlertTriangle } from "lucide-react"
+import { CheckCircle, Bot, Loader2, AlertTriangle, Gift, Rocket } from "lucide-react"
 import { cadastroSemSenhaSchema, type CadastroSemSenhaFormData } from "@/lib/validations"
 import { httpsCallable } from "firebase/functions"
 import { functions } from "@/lib/firebase"
@@ -89,7 +89,7 @@ export default function CadastroPage() {
         }
 
         if (resultData.exists) {
-            toast.error(resultData.message || "Já existe uma conta com este e-mail ou telefone.");
+            toast.error(resultData.message || "Você já possui uma conta. Por favor, faça login.");
             setIsLoading(false);
             return;
         }
@@ -165,10 +165,16 @@ export default function CadastroPage() {
         </div>
         <div className="flex flex-col justify-center items-center p-8 bg-white/50 lg:bg-transparent">
           <div className="w-full max-w-md">
-            <Card className="bg-white/70 backdrop-blur-xl border-gray-200/50 shadow-lg rounded-2xl">
-              <CardHeader className="text-center">
+            <Card className="bg-white/70 backdrop-blur-xl border-gray-200/50 shadow-lg rounded-2xl overflow-hidden">
+              <div className="w-full p-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-center">
+                  <div className="flex items-center justify-center">
+                      <Gift className="h-6 w-6 mr-3" />
+                      <p className="font-bold text-lg">Comece seu Teste Gratuito de 3 Dias!</p>
+                  </div>
+              </div>
+              <CardHeader className="text-center pt-6">
                 <CardTitle className="text-2xl">Crie sua Conta</CardTitle>
-                <CardDescription>É rápido e seguro. O pagamento é o próximo passo.</CardDescription>
+                <CardDescription>Sem compromisso. Cancele a qualquer momento.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -196,12 +202,14 @@ export default function CadastroPage() {
                       </SelectContent>
                     </Select>
                     {errors.plano && <p className="text-sm text-red-500">{errors.plano.message}</p>}
-                  </div>
-                  <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 font-semibold text-base" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isLoading ? "Aguarde..." : "Continuar para o Pagamento"}
+                  </div>                  <Button type="submit" className="w-full text-lg h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 font-bold text-white shadow-lg hover:shadow-xl transition-shadow" disabled={isLoading}>
+                    {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Rocket className="mr-2 h-5 w-5" />}
+                    {isLoading ? "Aguarde..." : "Ativar meus 3 Dias Grátis!"}
                   </Button>
                 </form>
+                <div className="mt-4 text-center text-xs text-gray-500 p-2 bg-gray-100 rounded-md">
+                  <p>Você não será cobrado hoje. O cadastro do cartão é apenas para garantir a continuidade do serviço após o teste. A assinatura de {planosDisponiveis[watchedPlano].split('-')[1].trim()} iniciará automaticamente em 3 dias, a menos que seja cancelada.</p>
+                </div>
                 <div className="mt-6 text-center">
                   <p className="text-sm text-gray-600">Já tem uma conta? <Link href="/login" className="font-semibold text-green-600 hover:underline">Fazer login</Link></p>
                 </div>

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { CheckCircle, AlertCircle, MessageSquare, DollarSign, Zap, Phone, Edit, X, Loader2, AlertTriangle } from "lucide-react"
+import { CheckCircle, AlertCircle, MessageSquare, DollarSign, Zap, Phone, Edit, X, Loader2, AlertTriangle, Sparkles } from "lucide-react"
 import { NavbarAdm } from "@/components/navbar_adm"
 import { useAuth, AuthLoader } from "@/app/context/authcontext"
 import { auth, db, functions } from "@/lib/firebase" 
@@ -43,15 +43,6 @@ const formatPhoneNumber = (phoneNumber: string) => {
   }
   return phoneNumber;
 };
-
-const unformatPhoneNumber = (formattedPhoneNumber: string) => {
-  const cleaned = ('' + formattedPhoneNumber).replace(/\D/g, '');
-  if (cleaned.length === 11) {
-      return `+55${cleaned}`;
-  }
-  return cleaned;
-};
-
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -159,10 +150,17 @@ export default function DashboardPage() {
   if (loading || !user) {
     return <AuthLoader />;
   }
+  
+  const trialEndDate = user.trial_end?.toDate();
+  const isTrialing = trialEndDate && trialEndDate > new Date();
+  
+  const daysRemainingInTrial = isTrialing 
+    ? Math.ceil((trialEndDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
 
   const isSubscriptionActive = user.statusAssinatura === 'ativo';
 
-  if (!isSubscriptionActive) {
+  if (!isSubscriptionActive && !isTrialing) {
     return (
         <div className="min-h-screen bg-red-50 flex flex-col items-center justify-center">
             <NavbarAdm />
@@ -193,7 +191,7 @@ export default function DashboardPage() {
   const proximoPagamentoDate = user.proximoVencimento?.toDate() ?? null;
   const daysUntilNextPayment = calculateDaysRemaining(proximoPagamentoDate);
   const isPaymentOverdue = daysUntilNextPayment < 0;
-  const isServiceActive = !isPaymentOverdue;
+  const isServiceActive = !isPaymentOverdue || isTrialing;
 
   const currentPlanName = availablePlans.find(plan => plan.id === user.planoId)?.nome || user.planoId || 'N/A';
 
@@ -204,6 +202,24 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
       <NavbarAdm />
       <div className="container mx-auto px-4 py-8">
+        {isTrialing && (
+          <div className="mb-8 p-4 bg-emerald-100 border-l-4 border-emerald-500 text-emerald-900 rounded-r-lg">
+            <div className="flex">
+              <div className="py-1">
+                <Sparkles className="h-6 w-6 text-emerald-600 mr-3 flex-shrink-0" />
+              </div>
+              <div>
+                <p className="font-bold">Você está em um período de teste!</p>
+                <p className="text-sm">
+                  Sua assinatura começará em {daysRemainingInTrial} dia(s). Cancele a qualquer momento em{" "}
+                  <Link href="/dashboard/planos" className="font-semibold underline">
+                    Gerenciar Plano
+                  </Link>.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
             Dashboard <span className="text-emerald-600">Jurídico</span>
@@ -222,7 +238,7 @@ export default function DashboardPage() {
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between p-4 border rounded-lg bg-emerald-50">
                     <div className="flex flex-col">
-                        <p className="text-lg font-semibold text-emerald-800">Plano {currentPlanName}</p> {/* Use currentPlanName here */}
+                        <p className="text-lg font-semibold text-emerald-800">Plano {currentPlanName}</p>
                         <p className="text-sm text-emerald-700">Próximo Pagamento: {proximoPagamentoDate?.toLocaleDateString("pt-BR") || 'N/A'}</p>
                     </div>
                     </div>
@@ -279,7 +295,7 @@ export default function DashboardPage() {
                 <CardContent className="space-y-4">
                     <div className={`flex items-center justify-between p-3 rounded-lg ${isPaymentOverdue ? 'bg-red-50' : 'bg-emerald-50'}`}>
                     <div>
-                        <p className={`text-sm font-medium ${isPaymentOverdue ? 'text-red-800' : 'text-emerald-800'}`}>Pagamento do Plano {currentPlanName}</p> {/* Use currentPlanName here */}
+                        <p className={`text-sm font-medium ${isPaymentOverdue ? 'text-red-800' : 'text-emerald-800'}`}>Pagamento do Plano {currentPlanName}</p>
                         <p className={`text-xs ${isPaymentOverdue ? 'text-red-600' : 'text-emerald-600'}`}>
                         {isPaymentOverdue ? `Pagamento vencido há ${Math.abs(daysUntilNextPayment)} dia(s)` : `Vence em ${daysUntilNextPayment} dia(s) (${proximoPagamentoDate?.toLocaleDateString('pt-BR')})`}
                         </p>
