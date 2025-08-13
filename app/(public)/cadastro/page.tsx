@@ -169,7 +169,7 @@ export default function CadastroPage() {
               <div className="w-full p-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-center">
                   <div className="flex items-center justify-center">
                       <Gift className="h-6 w-6 mr-3" />
-                      <p className="font-bold text-lg">Comece seu Teste Gratuito de 3 Dias!</p>
+                      <p className="font-bold text-lg">Comece seu Teste Gratuito de 7 Dias no plano Essencial!</p>
                   </div>
               </div>
               <CardHeader className="text-center pt-6">
@@ -204,11 +204,16 @@ export default function CadastroPage() {
                     {errors.plano && <p className="text-sm text-red-500">{errors.plano.message}</p>}
                   </div>                  <Button type="submit" className="w-full text-lg h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 font-bold text-white shadow-lg hover:shadow-xl transition-shadow" disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Rocket className="mr-2 h-5 w-5" />}
-                    {isLoading ? "Aguarde..." : "Ativar meus 3 Dias Grátis!"}
+                    {isLoading ? "Aguarde..." : watchedPlano === 'essencial' ? "Ativar meus 7 Dias Grátis!" : "Assinar Agora"}
                   </Button>
                 </form>
                 <div className="mt-4 text-center text-xs text-gray-500 p-2 bg-gray-100 rounded-md">
-                  <p>Você não será cobrado hoje. O cadastro do cartão é apenas para garantir a continuidade do serviço após o teste. A assinatura de {planosDisponiveis[watchedPlano].split('-')[1].trim()} iniciará automaticamente em 3 dias, a menos que seja cancelada.</p>
+                  <p>
+                    {watchedPlano === 'essencial'
+                      ? "Você não será cobrado hoje. O cadastro do cartão é apenas para garantir a continuidade do serviço após o teste. A assinatura de " + planosDisponiveis[watchedPlano].split('-')[1].trim() + " iniciará automaticamente em 7 dias, a menos que seja cancelada."
+                      : "A cobrança do plano selecionado será realizada no momento da assinatura."
+                    }
+                  </p>
                 </div>
                 <div className="mt-6 text-center">
                   <p className="text-sm text-gray-600">Já tem uma conta? <Link href="/login" className="font-semibold text-green-600 hover:underline">Fazer login</Link></p>

@@ -22,7 +22,7 @@ export default function WelcomePage() {
               <Card className="relative bg-white/70 backdrop-blur-xl border-gray-200/50 shadow-lg rounded-2xl hover:shadow-xl hover:-translate-y-1 transition-transform duration-300 h-full flex flex-col">
                 <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md">
                   <Sparkles className="h-4 w-4 mr-1" />
-                  3 Dias de Teste Grátis
+                  7 Dias de Teste Grátis
                 </Badge>
                 <CardHeader className="flex-grow">
                   <div className="mx-auto bg-emerald-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mb-4">

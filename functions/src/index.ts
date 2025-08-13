@@ -162,7 +162,7 @@ export const createStripeCheckoutSession = functions.https.onCall(
       const successUrl = `${siteUrl}/conta-criada`;
       const cancelUrl = `${siteUrl}/cadastro`;
 
-      const session = await stripeClient.checkout.sessions.create({
+      const sessionOptions: Stripe.Checkout.SessionCreateParams = {
         payment_method_types: ["card"],
         mode: "subscription",
         line_items: [{ price: priceId, quantity: 1 }],
@@ -171,12 +171,17 @@ export const createStripeCheckoutSession = functions.https.onCall(
           firebase_nome: nome,
           firebase_telefone: telefone,
         },
-        subscription_data: {
-          trial_period_days: 3,
-        },
         success_url: successUrl,
         cancel_url: cancelUrl,
-      });
+      };
+
+      if (priceId === 'price_1RgCq1Kr3wtpRgdkCLC4Y7tk') {
+        sessionOptions.subscription_data = {
+          trial_period_days: 7,
+        };
+      }
+
+      const session = await stripeClient.checkout.sessions.create(sessionOptions);
 
       return { sessionId: session.id };
     } catch (error: any) {
