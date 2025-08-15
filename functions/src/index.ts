@@ -12,8 +12,8 @@ try {
 const db = admin.firestore();
 const auth = admin.auth();
 
-const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY");
-const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET");
+const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY_TEST");
+const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET_TEST");
 
 const siteUrl = "https://juriszap.com.br";
 

@@ -25,9 +25,9 @@ const planosDisponiveis = {
 };
 
 const planosStripe = {
-  basico: "price_1RgChRKr3wtpRgdkn0YDJ7b1",
-  essencial: "price_1RgCq1Kr3wtpRgdkCLC4Y7tk",
-  ultra: "price_1RrOYxKr3wtpRgdkBap8B42k",
+  basico: "price_1RudY8CSB0g3iOaxou4Ibkv6",
+  essencial: "price_1RudXkCSB0g3iOaxMtn8SZcn",
+  ultra: "price_1RudXPCSB0g3iOaxbP3QeNJg",
 };
 
 type PlanoKey = keyof typeof planosDisponiveis;
