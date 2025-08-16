@@ -15,7 +15,7 @@ const auth = admin.auth();
 const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY_TEST");
 const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET_TEST");
 
-const siteUrl = "https://juriszap.com.br";
+const siteUrl = "https://localhost:3333/";
 
 const corsHandler = cors({
   origin: true,
