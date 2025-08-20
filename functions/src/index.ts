@@ -15,7 +15,7 @@ const auth = admin.auth();
 const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY_TEST");
 const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET_TEST");
 
-const siteUrl = "http://localhost:3000";
+const siteUrl = "http://localhost:3000"; 
 
 const corsHandler = cors({
   origin: true,
@@ -231,14 +231,30 @@ export const stripeWebhook = functions.https.onRequest(
           const stripePlanToId = Object.fromEntries(Object.entries(planosStripe).map(([key, value]) => [value, key]));
           const planoId = stripePlanToId[stripePriceId] || "desconhecido";
 
-          const trialEndTimestamp = subscription.trial_end ? admin.firestore.Timestamp.fromMillis(subscription.trial_end * 1000) : null;
-          
-          // CORREÇÃO: Usa trial_end se current_period_end for nulo.
-          const proximoVencimentoTimestamp = (subscription as any).current_period_end
-                ? admin.firestore.Timestamp.fromMillis((subscription as any).current_period_end * 1000)
-                : trialEndTimestamp;
+          // --- INÍCIO DA CORREÇÃO ---
+          let proximoVencimentoTimestamp: admin.firestore.Timestamp | null = null;
+          const trialEndTimestamp = subscription.trial_end
+            ? admin.firestore.Timestamp.fromMillis(subscription.trial_end * 1000)
+            : null;
 
-          console.log("Dados da assinatura:", { stripePriceId, planoIdMapeado: planoId, trialEnd: trialEndTimestamp, proximoVencimento: proximoVencimentoTimestamp });
+          if (trialEndTimestamp) {
+            proximoVencimentoTimestamp = trialEndTimestamp;
+          } else if ((subscription as any).current_period_end) {
+            proximoVencimentoTimestamp = admin.firestore.Timestamp.fromMillis((subscription as any).current_period_end * 1000);
+          } else {
+            // Fallback: Calcula 1 mês a partir de agora se tudo falhar (especialmente para planos sem teste)
+            const date = new Date();
+            date.setMonth(date.getMonth() + 1);
+            proximoVencimentoTimestamp = admin.firestore.Timestamp.fromDate(date);
+          }
+          // --- FIM DA CORREÇÃO ---
+
+          console.log("Dados da assinatura:", { 
+            stripePriceId, 
+            planoIdMapeado: planoId, 
+            proximoVencimento: proximoVencimentoTimestamp,
+            trialEnd: trialEndTimestamp 
+          });
 
           if (!stripePriceId) {
             functions.logger.error(`Não foi possível encontrar o priceId para a assinatura: ${stripeSubscriptionId}`);
