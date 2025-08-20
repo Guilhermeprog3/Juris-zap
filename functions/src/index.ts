@@ -15,21 +15,23 @@ const auth = admin.auth();
 const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY_TEST");
 const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET_TEST");
 
-const siteUrl = "https://localhost:3333/";
+const siteUrl = "http://localhost:3000";
 
 const corsHandler = cors({
   origin: true,
 });
+
+const planosStripe = {
+  basico: "price_1RudY8CSB0g3iOaxou4Ibkv6",
+  essencial: "price_1RudXkCSB0g3iOaxMtn8SZcn",
+  ultra: "price_1RudXPCSB0g3iOaxbP3QeNJg",
+};
 
 interface CreateCheckoutData {
   priceId: string;
   email: string;
   nome: string;
   telefone: string;
-}
-
-interface TopUpData {
-  amount: number;
 }
 
 interface UpdatePhoneNumberData {
@@ -44,6 +46,7 @@ interface UpdatePhoneNumberResult {
 
 export const checkUserStatus = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
+        console.log("-> Iniciando checkUserStatus com o corpo:", req.body);
         if (req.method !== 'POST') {
             return res.status(405).send({ error: 'Method Not Allowed' });
         }
@@ -56,7 +59,7 @@ export const checkUserStatus = functions.https.onRequest((req, res) => {
 
         try {
             const formattedPhoneNumber = telefone ? `+55${telefone.replace(/\D/g, '')}` : null;
-
+            console.log("Verificando:", { email, formattedPhoneNumber });
             const promises = [];
             if (email) {
                 promises.push(auth.getUserByEmail(email).then(() => 'emailAuth').catch(() => null));
@@ -69,28 +72,27 @@ export const checkUserStatus = functions.https.onRequest((req, res) => {
 
             const results = await Promise.all(promises);
             const foundBy = results.filter(r => r !== null);
+            console.log("Resultados da verificação:", foundBy);
 
             if (foundBy.length > 0) {
                 let message = "Já existe uma conta com este ";
-                if (foundBy.includes('emailAuth') || foundBy.includes('emailStore')) {
-                    message += "e-mail";
-                }
+                if (foundBy.includes('emailAuth') || foundBy.includes('emailStore')) message += "e-mail";
                 if (foundBy.includes('phoneAuth') || foundBy.includes('phoneStore')) {
                     if (message.includes("e-mail")) message += " e ";
                     message += "telefone";
                 }
                 message += ". Por favor, faça login.";
                 
-                return res.status(200).send({
-                    exists: true,
-                    message: message
-                });
+                console.log("Usuário encontrado. Mensagem:", message);
+                return res.status(200).send({ exists: true, message: message });
             }
-
+            
+            console.log("Nenhum usuário existente encontrado.");
             return res.status(200).send({ exists: false });
 
         } catch (error: any) {
             if (error.code === 'auth/user-not-found') {
+                console.log("Usuário não encontrado no Auth, o que é esperado para novos usuários.");
                 return res.status(200).send({ exists: false });
             }
             functions.logger.error("Erro inesperado na função checkUserStatus:", error);
@@ -101,44 +103,25 @@ export const checkUserStatus = functions.https.onRequest((req, res) => {
 
 export const updatePhoneNumber = functions.https.onCall(
   async (request): Promise<UpdatePhoneNumberResult> => {
-    if (!request.auth) {
-      throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-    }
+    if (!request.auth) throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
 
     const { uid, newPhoneNumber } = request.data as UpdatePhoneNumberData;
 
-    if (request.auth.uid !== uid) {
-      throw new functions.https.HttpsError("permission-denied", "Você não tem permissão para alterar o telefone de outro usuário.");
-    }
-
-    if (!uid || !newPhoneNumber) {
-      throw new functions.https.HttpsError("invalid-argument", "UID do usuário e novo número de telefone são obrigatórios.");
-    }
+    if (request.auth.uid !== uid) throw new functions.https.HttpsError("permission-denied", "Você não tem permissão para alterar o telefone de outro usuário.");
+    if (!uid || !newPhoneNumber) throw new functions.https.HttpsError("invalid-argument", "UID do usuário e novo número de telefone são obrigatórios.");
+    
     const formattedNewPhoneNumber = `+55${newPhoneNumber.replace(/\D/g, '')}`;
 
     try {
-      await auth.updateUser(uid, {
-        phoneNumber: formattedNewPhoneNumber,
-      });
-      functions.logger.info(`Telefone atualizado no Auth para UID: ${uid} para ${formattedNewPhoneNumber}`);
-
-      const userDocRef = db.collection("users").doc(uid);
-      await userDocRef.update({
-        telefone: formattedNewPhoneNumber,
-      });
-      functions.logger.info(`Telefone atualizado no Firestore para UID: ${uid}`);
-
+      await auth.updateUser(uid, { phoneNumber: formattedNewPhoneNumber });
+      await db.collection("users").doc(uid).update({ telefone: formattedNewPhoneNumber });
+      functions.logger.info(`Telefone atualizado com sucesso para UID: ${uid}`);
       return { success: true, message: "Número de telefone atualizado com sucesso." };
-
     } catch (error: any) {
       functions.logger.error("Erro ao atualizar o número de telefone:", error);
-      if (error.code === 'auth/invalid-phone-number') {
-        throw new functions.https.HttpsError("invalid-argument", "O número de telefone fornecido é inválido.");
-      }
-      if (error.code === 'auth/phone-number-already-exists') {
-        throw new functions.https.HttpsError("already-exists", "O número de telefone já está em uso por outra conta.");
-      }
-      throw new functions.https.HttpsError("internal", "Não foi possível atualizar o número de telefone. Tente novamente mais tarde.");
+      if (error.code === 'auth/invalid-phone-number') throw new functions.https.HttpsError("invalid-argument", "O número de telefone fornecido é inválido.");
+      if (error.code === 'auth/phone-number-already-exists') throw new functions.https.HttpsError("already-exists", "O número de telefone já está em uso por outra conta.");
+      throw new functions.https.HttpsError("internal", "Não foi possível atualizar o número de telefone.");
     }
   }
 );
@@ -148,14 +131,10 @@ export const createStripeCheckoutSession = functions.https.onCall(
   async (request) => {
     const { priceId, email, nome, telefone } = request.data as CreateCheckoutData;
     
-    if (!priceId || !email || !nome || !telefone) {
-      throw new functions.https.HttpsError("invalid-argument", "Dados essenciais estão faltando.");
-    }
+    if (!priceId || !email || !nome || !telefone) throw new functions.https.HttpsError("invalid-argument", "Dados essenciais estão faltando.");
     
     const secretValue = stripeSecret.value();
-    if (!secretValue) {
-        throw new functions.https.HttpsError("internal", "Configuração do servidor incompleta: Chave do Stripe não encontrada.");
-    }
+    if (!secretValue) throw new functions.https.HttpsError("internal", "Configuração do servidor incompleta.");
 
     try {
       const stripeClient = new Stripe(secretValue, { apiVersion: "2025-05-28.basil" });
@@ -167,28 +146,21 @@ export const createStripeCheckoutSession = functions.https.onCall(
         mode: "subscription",
         line_items: [{ price: priceId, quantity: 1 }],
         customer_email: email,
-        metadata: {
-          firebase_nome: nome,
-          firebase_telefone: telefone,
-        },
+        metadata: { firebase_nome: nome, firebase_telefone: telefone },
         success_url: successUrl,
         cancel_url: cancelUrl,
       };
 
-      if (priceId === 'price_1RgCq1Kr3wtpRgdkCLC4Y7tk') {
-        sessionOptions.subscription_data = {
-          trial_period_days: 7,
-        };
+      if (priceId === planosStripe.essencial) {
+        console.log(`Aplicando 7 dias de teste para o priceId: ${priceId}`);
+        sessionOptions.subscription_data = { trial_period_days: 7 };
       }
 
       const session = await stripeClient.checkout.sessions.create(sessionOptions);
-
+      console.log("Sessão de checkout criada com sucesso:", session.id);
       return { sessionId: session.id };
     } catch (error: any) {
       functions.logger.error("Erro CRÍTICO ao criar sessão de checkout do Stripe:", error);
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new functions.https.HttpsError("internal", `Erro do Stripe: ${error.message}`);
-      }
       throw new functions.https.HttpsError("internal", `Erro inesperado: ${error.message}`);
     }
   }
@@ -197,114 +169,55 @@ export const createStripeCheckoutSession = functions.https.onCall(
 export const createCustomerPortalSession = functions.https.onCall(
   { secrets: [stripeSecret] },
   async (request) => {
-    if (!request.auth) {
-      throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-    }
-    const stripeClient = new Stripe(stripeSecret.value(), {
-        apiVersion: "2025-05-28.basil",
-    });
-
-    const uid = request.auth.uid;
-    const userDoc = await db.collection("users").doc(uid).get();
+    if (!request.auth) throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+    
+    const stripeClient = new Stripe(stripeSecret.value(), { apiVersion: "2025-05-28.basil" });
+    const userDoc = await db.collection("users").doc(request.auth.uid).get();
     const stripeCustomerId = userDoc.data()?.stripeCustomerId;
 
-    if (!stripeCustomerId) {
-      throw new functions.https.HttpsError("not-found", "ID de cliente Stripe não encontrado.");
-    }
+    if (!stripeCustomerId) throw new functions.https.HttpsError("not-found", "ID de cliente Stripe não encontrado.");
     
-    const returnUrl = `${siteUrl}/dashboard`;
-
     try {
         const portalSession = await stripeClient.billingPortal.sessions.create({
           customer: stripeCustomerId,
-          return_url: returnUrl,
+          return_url: `${siteUrl}/dashboard`,
         });
         return { url: portalSession.url };
     } catch (error) {
         functions.logger.error("Erro ao criar sessão do portal do cliente:", error);
-        throw new functions.https.HttpsError("internal", "Não foi possível criar a sessão do portal do cliente.");
+        throw new functions.https.HttpsError("internal", "Não foi possível criar a sessão do portal.");
     }
 });
-
-export const createTopUpSession = functions.https.onCall(
-  { secrets: [stripeSecret] },
-  async (request) => {
-      if (!request.auth) {
-          throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-      }
-
-      const stripeClient = new Stripe(stripeSecret.value(), {
-          apiVersion: "2025-05-28.basil",
-      });
-
-      const uid = request.auth.uid;
-      const { amount } = request.data as TopUpData;
-
-      if (typeof amount !== 'number' || amount < 500) { 
-          throw new functions.https.HttpsError("invalid-argument", "O valor mínimo para recarga é de R$ 5,00.");
-      }
-
-      const userDoc = await db.collection("users").doc(uid).get();
-      const stripeCustomerId = userDoc.data()?.stripeCustomerId;
-      
-      if (!stripeCustomerId) {
-          throw new functions.https.HttpsError("not-found", "ID de cliente Stripe não encontrado.");
-      }
-      
-      const successUrl = `${siteUrl}/dashboard?topup_success=true`;
-      const cancelUrl = `${siteUrl}/dashboard`;
-
-      try {
-          const session = await stripeClient.checkout.sessions.create({
-              payment_method_types: ['card'],
-              mode: 'payment',
-              line_items: [{
-                  price_data: {
-                      currency: 'brl',
-                      product_data: { name: 'Créditos Adicionais' },
-                      unit_amount: amount,
-                  },
-                  quantity: 1,
-              }],
-              customer: stripeCustomerId,
-              success_url: successUrl,
-              cancel_url: cancelUrl,
-          });
-          return { sessionId: session.id };
-      } catch (error) {
-          functions.logger.error("Erro ao criar sessão de recarga:", error);
-          throw new functions.https.HttpsError("internal", "Não foi possível criar a sessão de recarga.");
-      }
-  }
-);
-
 
 export const stripeWebhook = functions.https.onRequest(
   { secrets: [stripeSecret, stripeWebhookSecret] },
   async (req, res) => {
-    const stripeClient = new Stripe(stripeSecret.value(), {
-        apiVersion: "2025-05-28.basil",
-    });
-    
+    const stripeClient = new Stripe(stripeSecret.value(), { apiVersion: "2025-05-28.basil" });
     const webhookSecretValue = stripeWebhookSecret.value();
     let event: Stripe.Event;
 
     try {
       event = stripeClient.webhooks.constructEvent(req.rawBody, req.headers["stripe-signature"] as string, webhookSecretValue);
     } catch (err) {
-      functions.logger.error("Erro na verificação do webhook do Stripe:", (err as Error).message);
+      functions.logger.error("!!! Erro na verificação do webhook do Stripe:", (err as Error).message);
       res.status(400).send(`Webhook Error: ${(err as Error).message}`);
       return;
     }
     
     const dataObject: any = event.data.object;
+    console.log(`Webhook recebido: ${event.type}`);
 
     switch (event.type) {
       case "checkout.session.completed": {
+        console.log("-> Iniciando processamento de 'checkout.session.completed'", { sessionId: dataObject.id });
+        console.log("Payload completo:", JSON.stringify(dataObject, null, 2));
+
         const email = dataObject.customer_details?.email;
         const nome = dataObject.metadata?.firebase_nome;
         const telefone = dataObject.metadata?.firebase_telefone;
         const stripeSubscriptionId = dataObject.subscription;
+
+        console.log("Metadados extraídos:", { email, nome, telefone, stripeSubscriptionId });
 
         if (!email || !nome || !telefone || !stripeSubscriptionId) {
           functions.logger.error("Webhook 'checkout.session.completed' com dados insuficientes.", { session: dataObject });
@@ -313,43 +226,55 @@ export const stripeWebhook = functions.https.onRequest(
 
         try {
           const subscription = await stripeClient.subscriptions.retrieve(stripeSubscriptionId);
-          const planoId = subscription.items.data[0]?.price.id;
-          const trialEndTimestamp = subscription.trial_end ? admin.firestore.Timestamp.fromMillis(subscription.trial_end * 1000) : null;
+          const stripePriceId = subscription.items.data[0]?.price.id;
+          
+          const stripePlanToId = Object.fromEntries(Object.entries(planosStripe).map(([key, value]) => [value, key]));
+          const planoId = stripePlanToId[stripePriceId] || "desconhecido";
 
-          if (!planoId) {
-            functions.logger.error(`Não foi possível encontrar o planoId para a assinatura: ${stripeSubscriptionId}`);
+          const trialEndTimestamp = subscription.trial_end ? admin.firestore.Timestamp.fromMillis(subscription.trial_end * 1000) : null;
+          
+          // CORREÇÃO: Usa trial_end se current_period_end for nulo.
+          const proximoVencimentoTimestamp = (subscription as any).current_period_end
+                ? admin.firestore.Timestamp.fromMillis((subscription as any).current_period_end * 1000)
+                : trialEndTimestamp;
+
+          console.log("Dados da assinatura:", { stripePriceId, planoIdMapeado: planoId, trialEnd: trialEndTimestamp, proximoVencimento: proximoVencimentoTimestamp });
+
+          if (!stripePriceId) {
+            functions.logger.error(`Não foi possível encontrar o priceId para a assinatura: ${stripeSubscriptionId}`);
             break;
           }
 
           const formattedPhoneNumber = `+55${telefone.replace(/\D/g, '')}`;
 
-          const userRecord = await admin.auth().createUser({ 
-            email, 
-            emailVerified: true,
-            displayName: nome, 
-            phoneNumber: formattedPhoneNumber
-          });
+          console.log("Tentando criar usuário no Firebase Auth...", { email, nome, telefone: formattedPhoneNumber });
+          const userRecord = await admin.auth().createUser({ email, emailVerified: true, displayName: nome, phoneNumber: formattedPhoneNumber });
+          console.log(`Usuário criado no Auth com UID: ${userRecord.uid}`);
           
-          await db.collection("users").doc(userRecord.uid).set({
+          const userDocument = {
             nome, email, telefone: formattedPhoneNumber, planoId,
             statusAssinatura: "ativo",
             stripeCustomerId: subscription.customer as string,
             dataCadastro: admin.firestore.FieldValue.serverTimestamp(),
-            proximoVencimento: admin.firestore.Timestamp.fromMillis((subscription as any).current_period_end * 1000),
+            proximoVencimento: proximoVencimentoTimestamp,
             trial_end: trialEndTimestamp,
             role: "user",
-          });
-
-          const actionCodeSettings = {
-            url: `${siteUrl}/login`,
-            handleCodeInApp: false,
           };
-          await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
+
+          console.log("Tentando salvar o seguinte documento no Firestore:", { uid: userRecord.uid, data: userDocument });
+          await db.collection("users").doc(userRecord.uid).set(userDocument);
+          console.log("Documento do usuário salvo com sucesso no Firestore.");
+
+          const actionCodeSettings = { url: `${siteUrl}/login`, handleCodeInApp: false };
           
-          functions.logger.info(`Usuário criado com sucesso: ${userRecord.uid} para o cliente Stripe ${subscription.customer as string}`);
+          console.log("Gerando link de redefinição de senha...");
+          await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
+          console.log("Link de redefinição de senha gerado com sucesso.");
+          
+          functions.logger.info(`Processo de criação do usuário ${userRecord.uid} concluído com sucesso.`);
 
         } catch (error) {
-          functions.logger.error("Erro ao processar 'checkout.session.completed':", error);
+          functions.logger.error("ERRO DETALHADO ao processar 'checkout.session.completed':", error);
         }
         break;
       }
