@@ -12,8 +12,8 @@ try {
 const db = admin.firestore();
 const auth = admin.auth();
 
-const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY_TEST");
-const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET_TEST");
+const stripeSecret = functions.params.defineSecret("STRIPE_SECRET_KEY");
+const stripeWebhookSecret = functions.params.defineSecret("STRIPE_WEBHOOK_SECRET");
 
 const siteUrl = "http://localhost:3000"; 
 
@@ -23,8 +23,8 @@ const corsHandler = cors({
 
 const planosStripe = {
   basico: "price_1RudY8CSB0g3iOaxou4Ibkv6",
-  essencial: "price_1RudXkCSB0g3iOaxMtn8SZcn",
-  ultra: "price_1RudXPCSB0g3iOaxbP3QeNJg",
+  essencial: "price_1RgCq1Kr3wtpRgdkCLC4Y7tk",
+  ultra: "price_1RgChRKr3wtpRgdkn0YDJ7b1",
 };
 
 interface CreateCheckoutData {
