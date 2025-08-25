@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  Users, UserX, Search, MoreHorizontal, Settings, ChevronDown, Clock, Loader2, UserCheck, Send
+  Users, UserX, Search, MoreHorizontal, Settings, ChevronDown, Clock, Loader2, UserCheck, Send, UserPlus
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -71,7 +71,7 @@ type UserDocument = {
 
 const toggleUserStatus = httpsCallable(functions, 'toggleUserStatus');
 const sendAnnouncementEmail = httpsCallable(functions, 'sendAnnouncementEmail');
-const getAllUsersData = httpsCallable(functions, 'getAllUsersData');
+const createUserWithTrial = httpsCallable(functions, 'createUserWithTrial');
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useRequireAuth('admin');
@@ -86,6 +86,9 @@ export default function AdminPage() {
     usuariosInativos: 0,
     usuariosAtrasados: 0,
   });
+  
+  const [newUser, setNewUser] = useState({ nome: '', email: '', telefone: '', trialDays: 7 });
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const [announcement, setAnnouncement] = useState({ subject: '', body: '' });
   const [isSending, setIsSending] = useState(false);
@@ -155,6 +158,26 @@ export default function AdminPage() {
       toast.error(error.message || "Falha ao alterar o status do usuário.");
     }
   };
+  
+    const handleCreateUserWithTrial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUser.nome || !newUser.email || !newUser.telefone || newUser.trialDays <= 0) {
+      toast.error("Por favor, preencha todos os campos para criar o usuário.");
+      return;
+    }
+    setIsCreatingUser(true);
+    try {
+      const result: any = await createUserWithTrial(newUser);
+      toast.success(result.data.message);
+      setNewUser({ nome: '', email: '', telefone: '', trialDays: 7 });
+      fetchData(); // Refresh user list
+    } catch (error: any) {
+      toast.error(error.message || "Ocorreu um erro ao criar o usuário.");
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
+
 
   const handleSendAnnouncement = async () => {
       if (!announcement.subject || !announcement.body) {
@@ -301,41 +324,80 @@ export default function AdminPage() {
           </TabsList>
           
           <TabsContent value="usuarios" className="space-y-4">
-            <Card>
-              <CardHeader><CardTitle>Gerenciamento de Usuários</CardTitle></CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap items-center gap-4 py-4">
-                  <Input placeholder="Filtrar por nome..." value={(table.getColumn("nome")?.getFilterValue() as string) ?? ""} onChange={(event) => table.getColumn("nome")?.setFilterValue(event.target.value)} className="max-w-sm"/>
-                  <Select value={planFilter} onValueChange={setPlanFilter}>
-                    <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filtrar por plano..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos os Planos</SelectItem>
-                      {plans.map(plan => (<SelectItem key={plan.id} value={plan.id}>{plan.nome}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex gap-2 flex-wrap">
-                      <Button variant={statusFilter === 'todos' ? 'default' : 'outline'} onClick={() => setStatusFilter('todos')}>Todos</Button>
-                      <Button variant={statusFilter === 'ativos' ? 'default' : 'outline'} onClick={() => setStatusFilter('ativos')}>Ativos</Button>
-                      <Button variant={statusFilter === 'inativos' ? 'default' : 'outline'} onClick={() => setStatusFilter('inativos')}>Inativos</Button>
-                      <Button variant={statusFilter === 'atrasados' ? 'default' : 'outline'} onClick={() => setStatusFilter('atrasados')}>Atrasados</Button>
+            <div>
+              <Card>
+                <CardHeader><CardTitle>Gerenciamento de Usuários</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap items-center gap-4 py-4">
+                    <Input placeholder="Filtrar por nome..." value={(table.getColumn("nome")?.getFilterValue() as string) ?? ""} onChange={(event) => table.getColumn("nome")?.setFilterValue(event.target.value)} className="max-w-sm"/>
+                    <Select value={planFilter} onValueChange={setPlanFilter}>
+                      <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filtrar por plano..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos os Planos</SelectItem>
+                        {plans.map(plan => (<SelectItem key={plan.id} value={plan.id}>{plan.nome}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2 flex-wrap">
+                        <Button variant={statusFilter === 'todos' ? 'default' : 'outline'} onClick={() => setStatusFilter('todos')}>Todos</Button>
+                        <Button variant={statusFilter === 'ativos' ? 'default' : 'outline'} onClick={() => setStatusFilter('ativos')}>Ativos</Button>
+                        <Button variant={statusFilter === 'inativos' ? 'default' : 'outline'} onClick={() => setStatusFilter('inativos')}>Inativos</Button>
+                        <Button variant={statusFilter === 'atrasados' ? 'default' : 'outline'} onClick={() => setStatusFilter('atrasados')}>Atrasados</Button>
+                    </div>
                   </div>
-                </div>
-                <div className="rounded-md border">
-                  <table className="w-full text-sm">
-                    <thead>
-                      {table.getHeaderGroups().map((headerGroup) => (<tr key={headerGroup.id}>{headerGroup.headers.map((header) => (<th key={header.id} className="h-12 px-4 text-left align-middle font-medium">{flexRender(header.column.columnDef.header, header.getContext())}</th>))}</tr>))}
-                    </thead>
-                    <tbody>
-                      {table.getRowModel().rows?.length ? (table.getRowModel().rows.map((row) => (<tr key={row.id} className="border-b hover:bg-muted/50">{row.getVisibleCells().map((cell) => (<td key={cell.id} className="p-4 align-middle">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>))}</tr>))) : (<tr><td colSpan={columns.length} className="h-24 text-center">Nenhum resultado encontrado.</td></tr>)}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex items-center justify-end space-x-2 py-4">
-                    <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Anterior</Button>
-                    <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Próxima</Button>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="rounded-md border">
+                    <table className="w-full text-sm">
+                      <thead>
+                        {table.getHeaderGroups().map((headerGroup) => (<tr key={headerGroup.id}>{headerGroup.headers.map((header) => (<th key={header.id} className="h-12 px-4 text-left align-middle font-medium">{flexRender(header.column.columnDef.header, header.getContext())}</th>))}</tr>))}
+                      </thead>
+                      <tbody>
+                        {table.getRowModel().rows?.length ? (table.getRowModel().rows.map((row) => (<tr key={row.id} className="border-b hover:bg-muted/50">{row.getVisibleCells().map((cell) => (<td key={cell.id} className="p-4 align-middle">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>))}</tr>))) : (<tr><td colSpan={columns.length} className="h-24 text-center">Nenhum resultado encontrado.</td></tr>)}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex items-center justify-end space-x-2 py-4">
+                      <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Anterior</Button>
+                      <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Próxima</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserPlus className="h-5 w-5 text-emerald-600" />
+                    Criar Novo Usuário com Período Gratuito
+                  </CardTitle>
+                  <CardDescription>
+                    Adicione um novo usuário e defina um período de teste em dias.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleCreateUserWithTrial} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-name">Nome</Label>
+                      <Input id="new-name" value={newUser.nome} onChange={(e) => setNewUser({...newUser, nome: e.target.value})} placeholder="Nome completo do usuário" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-email">E-mail</Label>
+                      <Input id="new-email" type="email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} placeholder="email@example.com" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-phone">Telefone</Label>
+                      <Input id="new-phone" value={newUser.telefone} onChange={(e) => setNewUser({...newUser, telefone: e.target.value})} placeholder="(XX) XXXXX-XXXX" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-trial">Dias de Teste</Label>
+                      <Input id="new-trial" type="number" value={newUser.trialDays} onChange={(e) => setNewUser({...newUser, trialDays: parseInt(e.target.value, 10)})} placeholder="Ex: 7" />
+                    </div>
+                    <Button type="submit" disabled={isCreatingUser} className="lg:col-span-4">
+                      {isCreatingUser && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Criar Usuário
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="assinaturas" className="space-y-4">

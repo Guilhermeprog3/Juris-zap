@@ -76,14 +76,13 @@ export default function CadastroPage() {
     setIsLoading(true);
 
     try {
-        const functionUrl = "https://checkuserstatus-q6s4qc63ta-uc.a.run.app";
+        const functionUrl = "https://getuserstatusbyphone-q6s4qc63ta-uc.a.run.app";
         const response = await fetch(functionUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: data.email, telefone: data.telefone }),
         });
         const resultData = await response.json();
-
         if (!response.ok) {
             throw new Error(resultData.error?.message || 'Erro ao verificar os seus dados.');
         }
