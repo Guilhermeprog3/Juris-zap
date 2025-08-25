@@ -66,8 +66,14 @@ export default function RecuperarSenhaPage() {
       toast.success(`Email de redefinição enviado para ${data.email}.`);
       setUserEmail(data.email);
       setStep(2);
-    } catch (error) {
-      toast.error("Falha ao enviar o email. Verifique o endereço e tente novamente.");
+    } catch (error: any) {
+      // --- CORREÇÃO 1: Verificação de usuário inexistente ---
+      if (error.code === 'auth/user-not-found') {
+        toast.error("O e-mail fornecido não está cadastrado. Verifique o endereço e tente novamente.");
+      } else {
+        toast.error("Falha ao enviar o email. Tente novamente mais tarde.");
+      }
+      // --- FIM DA CORREÇÃO 1 ---
     } finally {
       setIsLoading(false);
     }
@@ -131,6 +137,14 @@ export default function RecuperarSenhaPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {/* --- Início da Modificação 2: Aviso para fazer login --- */}
+                    <div className="bg-green-50 text-green-800 p-4 rounded-lg text-sm border border-green-200 text-left">
+                      <p className="font-medium">Já redefiniu sua senha?</p>
+                      <p className="mt-1">
+                        Se sim, você já pode <Link href="/login" className="font-semibold underline">fazer login</Link> com a nova senha.
+                      </p>
+                    </div>
+                    {/* --- Fim da Modificação 2 --- */}
                     <Button onClick={() => handleSendResetEmail({ email: userEmail })} className="w-full" variant="secondary" disabled={isLoading}>
                       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Reenviar E-mail

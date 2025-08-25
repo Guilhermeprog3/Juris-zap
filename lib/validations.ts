@@ -1,5 +1,3 @@
-// lib/validations.ts
-
 import { z } from "zod";
 
 export const cadastroSchema = z
@@ -43,7 +41,15 @@ export const loginSchema = z.object({
 export const cadastroSemSenhaSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   email: z.string().email("E-mail inválido."),
-  telefone: z.string().regex(/^\+55\d{10}$/, "Formato inválido. Use +55DDNNNNNNNN (10 dígitos)."),
+  // --- Início da correção ---
+  telefone: z
+    .string()
+    .min(1, "O telefone é obrigatório")
+    .transform((val) => val.replace(/\D/g, "")) // Remove tudo que não for dígito
+    .refine((val) => val.startsWith("55") && (val.length === 12 || val.length === 13), {
+      message: "Formato inválido. Use +55, o DDD e o número.",
+    }),
+  // --- Fim da correção ---
   plano: z.enum(["basico", "essencial", "ultra"], {
     errorMap: () => ({ message: "Por favor, selecione um plano." })
   }),
