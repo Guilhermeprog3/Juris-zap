@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { CheckCircle, AlertCircle, MessageSquare, DollarSign, Zap, Phone, Edit, X, Loader2, AlertTriangle, Sparkles } from "lucide-react"
+import { CheckCircle, AlertCircle, MessageSquare, DollarSign, Zap, Phone, Edit, X, Loader2, AlertTriangle, Sparkles, Mail } from "lucide-react"
 import { NavbarAdm } from "@/components/navbar_adm"
 import { useAuth, AuthLoader } from "@/app/context/authcontext"
 import { auth, db, functions } from "@/lib/firebase" 
@@ -34,15 +34,23 @@ interface UpdatePhoneNumberCallableResult {
   };
 }
 
-
-const formatPhoneNumber = (phoneNumber: string) => {
-  const cleaned = ('' + phoneNumber).replace(/\D/g, '');
-  const match = cleaned.match(/^(\d{2})(\d{5})(\d{4})$/);
-  if (match) {
-    return `(${match[1]}) ${match[2]}-${match[3]}`;
-  }
-  return phoneNumber;
-};
+const formatPhoneNumber = (value: string) => {
+    let cleaned = value.replace(/\D/g, "");
+    if (cleaned.startsWith("55")) {
+      cleaned = cleaned.substring(2);
+    }
+    if (cleaned.length > 10) {
+      cleaned = cleaned.substring(0, 10);
+    }
+    let formatted = "+55";
+    if (cleaned.length > 0) {
+      formatted += ` ${cleaned.slice(0, 2)}`;
+    }
+    if (cleaned.length > 2) {
+      formatted += ` ${cleaned.slice(2)}`;
+    }
+    return formatted;
+  };
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -104,9 +112,10 @@ export default function DashboardPage() {
   }, [user]); 
 
   const handleSavePhoneNumber = async () => {
-    if (!newPhoneNumber.trim()) {
-      toast.error("Por favor, insira um número válido.");
-      return;
+    const telefoneNumerico = `+${newPhoneNumber.replace(/\D/g, "")}`;
+    if (!telefoneNumerico || telefoneNumerico.length < 13) {
+        toast.error("Por favor, insira um número válido.");
+        return;
     }
     if (!user) return;
 
@@ -119,11 +128,11 @@ export default function DashboardPage() {
 
       const result = await updatePhoneNumberCallable({ 
         uid: user.uid, 
-        newPhoneNumber: newPhoneNumber 
+        newPhoneNumber: telefoneNumerico
       });
 
       if (result.data.success) { 
-        setUserPhoneNumber(formatPhoneNumber(newPhoneNumber)); 
+        setUserPhoneNumber(formatPhoneNumber(telefoneNumerico)); 
         toast.success(result.data.message || "Número de telefone atualizado!");
         setIsModalOpen(false);
       } else {
@@ -253,6 +262,19 @@ export default function DashboardPage() {
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
                 <CardHeader>
+                    <CardTitle className="flex items-center"><Mail className="h-5 w-5 mr-2 text-emerald-600" />Seu E-mail</CardTitle>
+                    <CardDescription>Este é o e-mail associado à sua conta.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-between p-4 border rounded-lg bg-emerald-50">
+                        <p className="text-lg font-semibold text-emerald-800">{user.email}</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
+                <CardHeader>
                     <CardTitle className="flex items-center"><Phone className="h-5 w-5 mr-2 text-emerald-600" />Seu Número de Contato</CardTitle>
                     <CardDescription>Este é o número que você usa para interagir com a IA e acessar sua conta.</CardDescription>
                 </CardHeader>
@@ -265,6 +287,7 @@ export default function DashboardPage() {
                     </div>
                 </CardContent>
             </Card>
+
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm rounded-xl overflow-hidden">
                 <div className="bg-gradient-to-r from-emerald-600 to-teal-600 h-2 w-full"></div>
                 <CardHeader><CardTitle>Histórico de Pagamentos</CardTitle></CardHeader>
@@ -346,7 +369,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Novo Número com DDD</Label>
-                <Input id="phone" placeholder="(XX) XXXXX-XXXX" value={newPhoneNumber} onChange={(e) => setNewPhoneNumber(formatPhoneNumber(e.target.value))} />
+                <Input id="phone" placeholder="+55 99 99999999" value={newPhoneNumber} onChange={(e) => setNewPhoneNumber(formatPhoneNumber(e.target.value))} />
               </div>
             </CardContent>
             <CardFooter className="flex justify-end space-x-2">

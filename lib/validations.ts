@@ -12,8 +12,8 @@ export const cadastroSchema = z
     email: z.string().email("Email inválido").min(1, "Email é obrigatório"),
     telefone: z
       .string()
-      .min(14, "Telefone é obrigatório") 
-      .regex(/^\(\d{2}\)\s\d{4,5}-\d{4}$/, "Formato inválido. Use (XX) XXXXX-XXXX"),
+      .min(1, "Telefone é obrigatório")
+      .regex(/^\+55\d{10}$/, "Formato inválido. Use DDNNNNNNNN (10 dígitos)."),
     senha: z
       .string()
       .min(8, "A senha deve ter pelo menos 8 caracteres")
@@ -43,7 +43,7 @@ export const loginSchema = z.object({
 export const cadastroSemSenhaSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   email: z.string().email("E-mail inválido."),
-  telefone: z.string().min(14, "O número de telefone parece inválido."),
+  telefone: z.string().regex(/^\+55\d{10}$/, "Formato inválido. Use +55DDNNNNNNNN (10 dígitos)."),
   plano: z.enum(["basico", "essencial", "ultra"], {
     errorMap: () => ({ message: "Por favor, selecione um plano." })
   }),

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CheckCircle, Bot, Loader2, AlertTriangle, Gift, Rocket } from "lucide-react"
+import { CheckCircle, Bot, Loader2, AlertTriangle, Gift, Rocket, Phone } from "lucide-react"
 import { cadastroSemSenhaSchema, type CadastroSemSenhaFormData } from "@/lib/validations"
 import { httpsCallable } from "firebase/functions"
 import { functions } from "@/lib/firebase"
@@ -69,18 +69,33 @@ export default function CadastroPage() {
   const watchedPlano = watch("plano")
 
   const formatTelefone = (value: string) => {
-    return value.replace(/\D/g, "").replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2").substring(0, 15)
-  }
-
+    let cleaned = value.replace(/\D/g, "");
+    if (cleaned.startsWith("55")) {
+      cleaned = cleaned.substring(2);
+    }
+    if (cleaned.length > 10) {
+      cleaned = cleaned.substring(0, 10);
+    }
+    let formatted = "+55";
+    if (cleaned.length > 0) {
+      formatted += ` ${cleaned.slice(0, 2)}`;
+    }
+    if (cleaned.length > 2) {
+      formatted += ` ${cleaned.slice(2)}`;
+    }
+    return formatted;
+  };
+  
   const onSubmit: SubmitHandler<CadastroSemSenhaFormData> = async (data) => {
     setIsLoading(true);
+    const telefoneNumerico = `+${data.telefone.replace(/\D/g, "")}`;
 
     try {
         const functionUrl = "https://getuserstatusbyphone-q6s4qc63ta-uc.a.run.app";
         const response = await fetch(functionUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: data.email, telefone: data.telefone }),
+            body: JSON.stringify({ email: data.email, telefone: telefoneNumerico }),
         });
         const resultData = await response.json();
         if (!response.ok) {
@@ -116,7 +131,7 @@ export default function CadastroPage() {
             priceId,
             email: data.email,
             nome: data.nome,
-            telefone: data.telefone,
+            telefone: telefoneNumerico,
         });
 
         const { sessionId } = checkoutResponse.data as { sessionId: string };
@@ -160,6 +175,17 @@ export default function CadastroPage() {
                     </div>
                 </div>
             </div>
+            <div className="mt-4 p-4 bg-sky-100/60 border-l-4 border-sky-500 text-sky-900 rounded-r-lg">
+                <div className="flex">
+                    <div className="py-1">
+                        <Phone className="h-6 w-6 text-sky-500 mr-3 flex-shrink-0" />
+                    </div>
+                    <div>
+                        <p className="font-bold">Formato do WhatsApp</p>
+                        <p className="text-sm">Utilize o formato +55 com DDD, seguido do seu número. Ex: +55 99 12345678</p>
+                    </div>
+                </div>
+            </div>
           </div>
         </div>
         <div className="flex flex-col justify-center items-center p-8 bg-white/50 lg:bg-transparent">
@@ -189,7 +215,7 @@ export default function CadastroPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="telefone">WhatsApp</Label>
-                    <Controller name="telefone" control={control} render={({ field }) => ( <Input {...field} id="telefone" type="tel" placeholder="(XX) XXXXX-XXXX" onChange={(e) => field.onChange(formatTelefone(e.target.value))} className={errors.telefone ? "border-red-500" : ""} /> )} />
+                    <Controller name="telefone" control={control} render={({ field }) => ( <Input {...field} id="telefone" type="tel" placeholder="+55 99 99999999" onChange={(e) => field.onChange(formatTelefone(e.target.value))} className={errors.telefone ? "border-red-500" : ""} /> )} />
                     {errors.telefone && <p className="text-sm text-red-500">{errors.telefone.message}</p>}
                   </div>
                   <div className="space-y-2">
