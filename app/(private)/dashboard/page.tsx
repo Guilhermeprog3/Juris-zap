@@ -8,9 +8,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { CheckCircle, AlertCircle, MessageSquare, DollarSign, Zap, Phone, Edit, X, Loader2, AlertTriangle, Sparkles, Mail } from "lucide-react"
 import { NavbarAdm } from "@/components/navbar_adm"
-import { useAuth, AuthLoader } from "@/app/context/authcontext"
-import { auth, db, functions } from "@/lib/firebase" 
-import { doc, updateDoc, collection, query, getDocs, orderBy, limit } from "firebase/firestore"
+import { useRequireAuth, AuthLoader } from "@/app/context/authcontext"
+import { db, functions } from "@/lib/firebase" 
+import { doc, collection, query, getDocs, orderBy, limit } from "firebase/firestore"
 import { httpsCallable } from "firebase/functions" 
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
@@ -53,7 +53,7 @@ const formatPhoneNumber = (value: string) => {
   };
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
+  const { user, loading } = useRequireAuth('user');
   const router = useRouter();
 
   const [userPhoneNumber, setUserPhoneNumber] = useState("");
@@ -108,7 +108,9 @@ export default function DashboardPage() {
       }
     };
 
-    fetchInitialData();
+    if (user) {
+        fetchInitialData();
+    }
   }, [user]); 
 
   const handleSavePhoneNumber = async () => {

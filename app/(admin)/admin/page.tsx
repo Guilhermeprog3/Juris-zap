@@ -36,6 +36,7 @@ import { db, functions } from "@/lib/firebase"
 import { httpsCallable } from "firebase/functions"
 import { collection, getDocs, query, Timestamp } from "firebase/firestore"
 import { toast } from "sonner"
+import Link from "next/link"
 
 type StatusAssinatura = "ativo" | "inativo" | "pagamento_atrasado";
 
@@ -315,7 +316,7 @@ export default function AdminPage() {
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  if (authLoading || (user?.role === 'admin' && isLoadingData)) {
+  if (authLoading || !user || user.role !== 'admin') {
     return <AuthLoader />;
   }
 

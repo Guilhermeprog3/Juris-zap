@@ -5,7 +5,7 @@ import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, User 
 import { getFirestore, doc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useRouter, usePathname } from 'next/navigation';
 import { app } from '@/lib/firebase';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from "sonner";
 
 interface UserProfile {
@@ -124,7 +124,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? <AuthLoader /> : children}
+      {children}
     </AuthContext.Provider>
   );
 };
@@ -137,18 +137,26 @@ export const useAuth = (): AuthContextType => {
   return context;
 };
 
-export const useRequireAuth = (role?: 'admin') => {
+export const useRequireAuth = (role?: 'admin' | 'user') => {
     const authState = useAuth();
     const router = useRouter();
   
     useEffect(() => {
-      if (!authState.loading) {
-        if (!authState.user) {
-          router.push('/login');
-        } else if (role === 'admin' && authState.user?.role !== 'admin') {
-          router.push('/dashboard'); 
-        }
+      if (authState.loading) {
+        return; 
       }
+  
+      if (!authState.user) {
+        router.push('/login');
+        return;
+      }
+  
+      if (role === 'admin' && authState.user.role !== 'admin') {
+        router.push('/dashboard');
+      } else if (role === 'user' && authState.user.role === 'admin') {
+        router.push('/admin');
+      }
+  
     }, [authState, router, role]);
   
     return authState;
