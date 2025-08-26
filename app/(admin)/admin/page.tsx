@@ -99,6 +99,24 @@ export default function AdminPage() {
   const [statusFilter, setStatusFilter] = useState('todos');
   const [planFilter, setPlanFilter] = useState('todos');
 
+  const formatTelefone = (value: string) => {
+    let cleaned = value.replace(/\D/g, "");
+    if (cleaned.startsWith("55")) {
+      cleaned = cleaned.substring(2);
+    }
+    if (cleaned.length > 10) {
+      cleaned = cleaned.substring(0, 10);
+    }
+    let formatted = "+55";
+    if (cleaned.length > 0) {
+      formatted += ` ${cleaned.slice(0, 2)}`;
+    }
+    if (cleaned.length > 2) {
+      formatted += ` ${cleaned.slice(2)}`;
+    }
+    return formatted;
+  };
+
   const fetchData = useCallback(async () => {
     setIsLoadingData(true);
     try {
@@ -161,16 +179,17 @@ export default function AdminPage() {
   
     const handleCreateUserWithTrial = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUser.nome || !newUser.email || !newUser.telefone || newUser.trialDays <= 0) {
-      toast.error("Por favor, preencha todos os campos para criar o usuário.");
+    const telefoneNumerico = `+${newUser.telefone.replace(/\D/g, "")}`;
+    if (!newUser.nome || !newUser.email || !telefoneNumerico || telefoneNumerico.length < 13 || newUser.trialDays <= 0) {
+      toast.error("Por favor, preencha todos os campos corretamente.");
       return;
     }
     setIsCreatingUser(true);
     try {
-      const result: any = await createUserWithTrial(newUser);
+      const result: any = await createUserWithTrial({ ...newUser, telefone: telefoneNumerico });
       toast.success(result.data.message);
       setNewUser({ nome: '', email: '', telefone: '', trialDays: 7 });
-      fetchData(); // Refresh user list
+      fetchData();
     } catch (error: any) {
       toast.error(error.message || "Ocorreu um erro ao criar o usuário.");
     } finally {
@@ -384,7 +403,7 @@ export default function AdminPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="new-phone">Telefone</Label>
-                      <Input id="new-phone" value={newUser.telefone} onChange={(e) => setNewUser({...newUser, telefone: e.target.value})} placeholder="(XX) XXXXX-XXXX" />
+                      <Input id="new-phone" value={newUser.telefone} onChange={(e) => setNewUser({...newUser, telefone: formatTelefone(e.target.value)})} placeholder="+55 99 99999999" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="new-trial">Dias de Teste</Label>
@@ -402,36 +421,36 @@ export default function AdminPage() {
 
           <TabsContent value="assinaturas" className="space-y-4">
              <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-emerald-600" />
-                  Visualização de Planos
-                </CardTitle>
-                <CardDescription>
-                  Abaixo estão os planos de assinatura atuais.
-                  <br />
-                  <span className="font-semibold text-amber-700">
-                    Importante: A edição de nomes e preços deve ser feita diretamente no seu painel do Stripe para garantir consistência.
-                  </span>
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {plans.map((plan) => (
-                    <div key={plan.id} className="flex flex-col md:flex-row items-center justify-between p-4 border rounded-lg gap-4 bg-gray-50">
-                        <div className="w-full space-y-2">
-                            <Label htmlFor={`name-${plan.id}`}>Nome do Plano</Label>
-                            <Input id={`name-${plan.id}`} type="text" value={plan.nome} readOnly className="w-full bg-white cursor-not-allowed"/>
-                        </div>
-                        <div className="w-full md:w-auto space-y-2">
-                            <Label htmlFor={`price-${plan.id}`}>Preço (R$)</Label>
-                            <Input id={`price-${plan.id}`} type="number" value={plan.preco} readOnly className="w-full md:w-32 bg-white cursor-not-allowed"/>
-                        </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+               <CardHeader>
+                 <CardTitle className="flex items-center gap-2">
+                   <Settings className="h-5 w-5 text-emerald-600" />
+                   Visualização de Planos
+                 </CardTitle>
+                 <CardDescription>
+                   Abaixo estão os planos de assinatura atuais.
+                   <br />
+                   <span className="font-semibold text-amber-700">
+                     Importante: A edição de nomes e preços deve ser feita diretamente no seu painel do Stripe para garantir consistência.
+                   </span>
+                 </CardDescription>
+               </CardHeader>
+               <CardContent>
+                 <div className="space-y-6">
+                   {plans.map((plan) => (
+                     <div key={plan.id} className="flex flex-col md:flex-row items-center justify-between p-4 border rounded-lg gap-4 bg-gray-50">
+                         <div className="w-full space-y-2">
+                             <Label htmlFor={`name-${plan.id}`}>Nome do Plano</Label>
+                             <Input id={`name-${plan.id}`} type="text" value={plan.nome} readOnly className="w-full bg-white cursor-not-allowed"/>
+                         </div>
+                         <div className="w-full md:w-auto space-y-2">
+                             <Label htmlFor={`price-${plan.id}`}>Preço (R$)</Label>
+                             <Input id={`price-${plan.id}`} type="number" value={plan.preco} readOnly className="w-full md:w-32 bg-white cursor-not-allowed"/>
+                         </div>
+                     </div>
+                   ))}
+                 </div>
+               </CardContent>
+             </Card>
           </TabsContent>
           
           <TabsContent value="anuncios" className="space-y-4">
