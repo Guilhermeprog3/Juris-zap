@@ -41,7 +41,7 @@ export default function WelcomePage() {
               </Card>
             </Link>
 
-            <Link href="/institucional" className="group">
+            <Link href="/faculdades" className="group">
               <Card className="bg-white/70 backdrop-blur-xl border-gray-200/50 shadow-lg rounded-2xl hover:shadow-xl hover:-translate-y-1 transition-transform duration-300 h-full flex flex-col">
                 <CardHeader className="flex-grow">
                     <div className="mx-auto bg-sky-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mb-4">

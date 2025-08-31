@@ -22,10 +22,10 @@ export function NavbarInst() {
           </Link>
 
           <div className="hidden md:flex items-center space-x-8">
-            <a href="/institucional#features" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <a href="/faculdades#features" className="text-gray-600 hover:text-gray-900 transition-colors">
               Vantagens
             </a>
-            <a href="/institucional#orcamento">
+            <a href="/faculdades#orcamento">
               <Button>Solicitar Orçamento</Button>
             </a>
           </div>
@@ -38,11 +38,11 @@ export function NavbarInst() {
             </SheetTrigger>
             <SheetContent side="right">
               <div className="flex flex-col space-y-4 mt-8">
-                <a href="/institucional#features" className="text-lg font-medium" onClick={() => setIsOpen(false)}>
+                <a href="/faculdades#features" className="text-lg font-medium" onClick={() => setIsOpen(false)}>
                   Vantagens
                 </a>
                 <div className="pt-4">
-                  <a href="/institucional#orcamento" onClick={() => setIsOpen(false)}>
+                  <a href="/faculdades#orcamento" onClick={() => setIsOpen(false)}>
                     <Button className="w-full">Solicitar Orçamento</Button>
                   </a>
                 </div>

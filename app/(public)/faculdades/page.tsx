@@ -25,7 +25,7 @@ export default function InstitucionalPage() {
             <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Inteligência Artificial</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Prepare seus alunos para o futuro da advocacia com ferramentas de IA que simulam casos, auxiliam em pesquisas e otimizam o aprendizado.
+            Prepare seus alunos para o futuro da advocacia com ferramentas de IA que simulam casos, auxiliam em pesquisas e otimizam o aprendizado. Nossa tecnologia recebe integração de todo o material digital da faculdade e tem como referência, em seu treinamento, a metodologia e a estrutura acadêmica da IES.
           </p>
           <div className="flex justify-center">
             <a href="#orcamento">

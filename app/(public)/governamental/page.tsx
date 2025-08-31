@@ -25,7 +25,7 @@ export default function GovernamentalPage() {
             <span className="bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">Inteligência Artificial</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Otimize processos, analise documentos complexos e aumente a eficiência do seu órgão com nossa IA jurídica especializada.
+            A JurisZap é sua IA jurídica especializada: otimize processos, analise documentos complexos e aumente a eficiência do seu órgão com Inteligência Artificial. Além disso, conte com nossa assistente para buscar, verificar e validar a legislação municipal, estadual e federal, apoiando toda a gestão pública com respostas rápidas e práticas pelo WhatsApp.
           </p>
           <div className="flex justify-center">
             <a href="#orcamento">

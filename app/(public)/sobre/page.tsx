@@ -20,17 +20,17 @@ export default function SobrePage() {
          Nossa Plataforma
         </Badge>
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-         O que é o <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">JurisZap?</span>
+         O que é a <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">JurisZap?</span>
         </h1>
         <div className="text-lg text-gray-700 space-y-5">
          <p>
-          O JurisZap é uma plataforma inovadora de Inteligência Artificial desenhada especificamente para o universo jurídico. Nossa missão é transformar a maneira como <strong>estudantes e profissionais do Direito</strong> interagem com o conhecimento.
+          A JurisZap é uma plataforma inovadora de Inteligência Artificial desenhada especificamente para o universo jurídico. Nossa missão é transformar a maneira como <strong>estudantes e profissionais do Direito</strong> interagem com o conhecimento.
          </p>
          <p>
           Através de uma poderosa IA integrada diretamente ao seu <strong>WhatsApp</strong>, oferecemos uma assistente virtual capaz de realizar tarefas complexas em segundos, desde resumir textos e imagens até auxiliar na resolução de exercícios.
          </p>
          <p>
-          Criamos o JurisZap para ser <strong>um aliado inteligente na sua jornada</strong>, otimizando seu tempo e impulsionando seus estudos e sua carreira.
+          Criamos a JurisZap para ser <strong>um aliado inteligente na sua jornada</strong>, otimizando seu tempo e impulsionando seus estudos e sua carreira.
          </p>
         </div>
        </div>
