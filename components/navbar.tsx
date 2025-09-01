@@ -22,7 +22,7 @@ export function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/#features" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/estudante#features" className="text-gray-600 hover:text-gray-900 transition-colors">
               Funcionalidades
             </Link>
             <Link href="/planos" className="text-gray-600 hover:text-gray-900 transition-colors">

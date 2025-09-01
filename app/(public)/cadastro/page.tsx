@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useForm, Controller, SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
@@ -34,7 +34,7 @@ type PlanoKey = keyof typeof planosDisponiveis;
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
-export default function CadastroPage() {
+function CadastroPageComponent() {
   const [isLoading, setIsLoading] = useState(false)
   const searchParams = useSearchParams()
   const planoInicial = searchParams.get("plano")
@@ -249,5 +249,13 @@ export default function CadastroPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function CadastroPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CadastroPageComponent />
+    </Suspense>
   )
 }
